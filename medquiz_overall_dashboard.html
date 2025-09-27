@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedQuiz Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Sarabun', sans-serif; }
+        .chart-container { position: relative; width: 100%; max-width: 500px; margin-left: auto; margin-right: auto; height: 320px; max-height: 40vh; }
+        @media (min-width: 768px) { .chart-container { height: 350px; } }
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255, 255, 255, 0.8); z-index: 9999; display: flex; align-items: center; justify-content: center; transition: opacity 0.3s; }
+        .spinner { border: 4px solid rgba(0, 0, 0, 0.1); width: 36px; height: 36px; border-radius: 50%; border-left-color: #F25C05; animation: spin 1s ease infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-[#F2F2F2]">
+    
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+
+    <div id="dashboard-content" class="container mx-auto p-4 sm:p-6 lg:p-8 opacity-0">
+
+        <header class="mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-[#0D0D0D]">Dashboard</h1>
+            <p id="user-greeting" class="text-md text-[#404040]">ภาพรวมประสิทธิภาพของคุณ</p>
+        </header>
+
+        <main class="space-y-8">
+            
+            <section id="kpi-snapshot" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="bg-white rounded-xl shadow-md p-6 flex flex-col justify-between">
+                    <h3 class="text-lg font-bold text-[#404040]">คะแนนเฉลี่ยรวม</h3>
+                    <p id="kpi-avg-score" class="text-4xl font-bold text-[#F25C05] text-right">-%</p>
+                </div>
+                <div class="bg-white rounded-xl shadow-md p-6 flex flex-col justify-between">
+                    <h3 class="text-lg font-bold text-[#404040]">จำนวนชุดข้อสอบที่ทำ</h3>
+                    <p id="kpi-total-exams" class="text-4xl font-bold text-[#F28705] text-right">-</p>
+                </div>
+                <div class="bg-white rounded-xl shadow-md p-6 flex flex-col justify-between">
+                    <h3 class="text-lg font-bold text-[#404040]">คำถามทั้งหมดที่ตอบ</h3>
+                    <p id="kpi-total-questions" class="text-4xl font-bold text-[#F2B705] text-right">-</p>
+                </div>
+            </section>
+            
+            <section id="performance-analysis" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="font-bold text-xl mb-1 text-center text-[#0D0D0D]">ประสิทธิภาพรายวิชา</h3>
+                    <p class="text-sm text-center text-gray-500 mb-4">แสดงคะแนนเฉลี่ยเพื่อเปรียบเทียบความถนัดในแต่ละหมวดหมู่</p>
+                    <div class="chart-container">
+                        <canvas id="performanceRadarChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="font-bold text-xl mb-1 text-center text-[#0D0D0D]">จำนวนข้อที่ทำในแต่ละวิชา</h3>
+                    <p class="text-sm text-center text-gray-500 mb-4">แสดงปริมาณการทำข้อสอบเพื่อเป็นข้อมูลประกอบ</p>
+                    <div class="chart-container">
+                        <canvas id="questionsPerCategoryChart"></canvas>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="recent-activity" class="bg-white rounded-xl shadow-md p-6">
+                <h3 class="font-bold text-xl mb-4 text-[#0D0D0D]">กิจกรรมล่าสุด (5 ครั้ง)</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="border-b-2 border-gray-200">
+                                <th class="p-3 font-bold text-gray-600">วันที่</th>
+                                <th class="p-3 font-bold text-gray-600">หมวดหมู่</th>
+                                <th class="p-3 font-bold text-gray-600 text-right">คะแนน</th>
+                            </tr>
+                        </thead>
+                        <tbody id="activity-table-body">
+                           <tr><td colspan="3" class="text-center p-4 text-gray-500">กำลังโหลดข้อมูล...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            
+        </main>
+
+        <footer class="text-center mt-12 text-gray-500">
+            <p id="footer-text">MedQuiz Dashboard</p>
+        </footer>
+
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    // !!! ================================================================= !!!
+    // !!!   สำคัญมาก: นำ URL ของ Web App ที่ได้จากการ Deploy มาวางที่นี่    !!!
+    // !!! ================================================================= !!!
+    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwX_ExQ5vVhMwrRhW2D9uWD0g4ffXfPGYkH65shrwp7Rxkk2RQ3xfl66x_SPnDgi4QKdQ/exec';
+    // !!! ================================================================= !!!
+    // !!! ================================================================= !!!
+
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const dashboardContent = document.getElementById('dashboard-content');
+    
+    // --- Chart instances (to be created later) ---
+    let radarChart, barChart;
+
+    const wrapLabel = (label) => {
+        if (typeof label !== 'string' || label.length <= 16) return label;
+        const words = label.split(' ');
+        const lines = [];
+        let currentLine = '';
+        words.forEach(word => {
+            if ((currentLine + ' ' + word).trim().length > 16 && currentLine.length > 0) {
+                lines.push(currentLine);
+                currentLine = word;
+            } else {
+                currentLine = currentLine ? `${currentLine} ${word}` : word;
+            }
+        });
+        if (currentLine) lines.push(currentLine);
+        return lines;
+    };
+
+    const tooltipTitleCallback = (tooltipItems) => {
+        const item = tooltipItems[0];
+        let label = item.chart.data.labels[item.dataIndex];
+        return Array.isArray(label) ? label.join(' ') : label;
+    };
+    
+    const showError = (message) => {
+        dashboardContent.innerHTML = `<div class="text-center p-8 text-red-500">
+            <h1 class="text-2xl font-bold">เกิดข้อผิดพลาด</h1>
+            <p>${message}</p>
+        </div>`;
+        loadingOverlay.style.opacity = 0;
+        setTimeout(() => loadingOverlay.style.display = 'none', 300);
+        dashboardContent.style.opacity = 1;
+    };
+
+    const renderDashboard = (data) => {
+        // Update Header
+        document.getElementById('user-greeting').textContent = `ภาพรวมประสิทธิภาพของคุณ, ${data.userName}`;
+
+        // Update KPIs
+        document.getElementById('kpi-avg-score').textContent = `${data.kpis.averageScore}%`;
+        document.getElementById('kpi-total-exams').textContent = data.kpis.totalExams;
+        document.getElementById('kpi-total-questions').textContent = data.kpis.totalQuestions;
+
+        // Render Radar Chart
+        if (radarChart) radarChart.destroy();
+        const radarChartCtx = document.getElementById('performanceRadarChart').getContext('2d');
+        radarChart = new Chart(radarChartCtx, {
+            type: 'radar',
+            data: {
+                labels: data.performanceByCategory.labels.map(wrapLabel),
+                datasets: [{
+                    label: 'คะแนนเฉลี่ย (%)',
+                    data: data.performanceByCategory.scores,
+                    backgroundColor: 'rgba(242, 92, 5, 0.2)',
+                    borderColor: '#F25C05',
+                    pointBackgroundColor: '#F25C05',
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, scales: { r: { angleLines: { color: '#e0e0e0' }, grid: { color: '#e0e0e0' }, pointLabels: { font: { size: 12 }, color: '#404040' }, ticks: { backdropColor: 'transparent', color: '#888', stepSize: 20, beginAtZero: true, max: 100 } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { title: tooltipTitleCallback } } } }
+        });
+
+        // Render Bar Chart
+        if (barChart) barChart.destroy();
+        const barChartCtx = document.getElementById('questionsPerCategoryChart').getContext('2d');
+        barChart = new Chart(barChartCtx, {
+            type: 'bar',
+            data: {
+                labels: data.performanceByCategory.labels.map(wrapLabel),
+                datasets: [{
+                    label: 'จำนวนข้อที่ทำ',
+                    data: data.performanceByCategory.counts,
+                    backgroundColor: ['#F25C05', '#F28705', '#F29F05', '#F2B705', '#F24405', '#F2780C'],
+                    borderRadius: 5
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { title: tooltipTitleCallback } } } }
+        });
+
+        // Render Activity Table
+        const activityTableBody = document.getElementById('activity-table-body');
+        activityTableBody.innerHTML = '';
+        if (data.recentActivity.length > 0) {
+            data.recentActivity.forEach(activity => {
+                const row = document.createElement('tr');
+                row.className = 'border-b border-gray-100';
+                const scoreValue = parseInt(activity.score, 10);
+                const scoreColor = scoreValue >= 80 ? 'text-green-500' : (scoreValue < 50 ? 'text-red-500' : 'text-gray-800');
+                row.innerHTML = `
+                    <td class="p-3 text-gray-700">${activity.date}</td>
+                    <td class="p-3 text-gray-800">${activity.category}</td>
+                    <td class="p-3 text-right font-bold ${scoreColor}">${activity.score}</td>
+                `;
+                activityTableBody.appendChild(row);
+            });
+        } else {
+            activityTableBody.innerHTML = `<tr><td colspan="3" class="text-center p-4 text-gray-500">ยังไม่มีกิจกรรมล่าสุด</td></tr>`;
+        }
+        
+        // Update Footer
+        const today = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+        document.getElementById('footer-text').textContent = `MedQuiz Dashboard | ข้อมูลล่าสุดเมื่อ ${today}`;
+    };
+
+    async function loadDashboardData() {
+        const params = new URLSearchParams(window.location.search);
+        const userId = params.get('uid');
+
+        if (!userId) {
+            showError("ไม่พบ User ID ใน URL (uid parameter is missing)");
+            return;
+        }
+
+        if (GAS_WEB_APP_URL === 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE') {
+             showError("กรุณาตั้งค่า GAS_WEB_APP_URL ในไฟล์ HTML ก่อน");
+             return;
+        }
+
+        try {
+            const response = await fetch(`${GAS_WEB_APP_URL}?uid=${userId}`);
+            if (!response.ok) {
+                throw new Error(`Server responded with status: ${response.status}`);
+            }
+            const data = await response.json();
+
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            
+            renderDashboard(data);
+            
+            // Fade in content
+            dashboardContent.classList.add('fade-in');
+            dashboardContent.style.opacity = 1;
+
+        } catch (error) {
+            console.error('Failed to load dashboard data:', error);
+            showError(`ไม่สามารถโหลดข้อมูลได้: ${error.message}`);
+        } finally {
+            // Fade out loading overlay
+            loadingOverlay.style.opacity = 0;
+            setTimeout(() => loadingOverlay.style.display = 'none', 300);
+        }
+    }
+
+    loadDashboardData();
+});
+</script>
+</body>
+</html>
+
