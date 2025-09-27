@@ -48,6 +48,11 @@
                     <p id="kpi-avg-score" class="text-5xl font-bold text-yellow-600 text-right">-%</p>
                 </div>
             </section>
+            
+            <section id="leaderboard" class="bg-white rounded-xl shadow-lg p-6">
+                <h3 class="font-bold text-xl mb-4 text-center text-gray-900">🏆 10 อันดับคะแนนสูงสุด</h3>
+                <div id="leaderboard-list" class="space-y-2"></div>
+            </section>
 
             <section id="category-popularity" class="bg-white rounded-xl shadow-lg p-6">
                 <h3 class="font-bold text-xl mb-4 text-center text-gray-900">ความนิยมของหมวดหมู่วิชา</h3>
@@ -78,12 +83,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
 
-    // !!! ================================================================= !!!
-    // !!!   สำคัญมาก: นำ URL ของ Web App ที่ได้จากการ Deploy มาวางที่นี่    !!!
-    // !!! ================================================================= !!!
     const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwX_ExQ5vVhMwrRhW2D9uWD0g4ffXfPGYkH65shrwp7Rxkk2RQ3xfl66x_SPnDgi4QKdQ/exec';
-    // !!! ================================================================= !!!
-    // !!! ================================================================= !!!
 
     const loadingOverlay = document.getElementById('loading-overlay');
     const dashboardContent = document.getElementById('dashboard-content');
@@ -106,12 +106,29 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const renderDashboard = (data) => {
-        // KPIs
         document.getElementById('kpi-total-users').textContent = data.kpis.totalUsers;
         document.getElementById('kpi-total-exams').textContent = data.kpis.totalExams;
         document.getElementById('kpi-avg-score').textContent = `${data.kpis.averageScore}%`;
 
-        // Category Popularity Chart
+        const leaderboardList = document.getElementById('leaderboard-list');
+        leaderboardList.innerHTML = '';
+        const medals = ['🥇', '🥈', '🥉'];
+        if(data.leaderboard && data.leaderboard.length > 0) {
+            data.leaderboard.forEach((user, index) => {
+                const rankText = medals[index] || `${index + 1}.`;
+                const item = document.createElement('div');
+                item.className = 'flex items-center p-2 rounded-md transition-colors hover:bg-gray-100';
+                item.innerHTML = `
+                    <span class="font-bold w-10 text-center text-lg">${rankText}</span>
+                    <span class="flex-1 text-gray-800">${user.name}</span>
+                    <span class="font-bold text-blue-600">${user.score.toFixed(1)}%</span>
+                `;
+                leaderboardList.appendChild(item);
+            });
+        } else {
+            leaderboardList.innerHTML = `<p class="text-center text-gray-500">ยังไม่มีข้อมูล</p>`;
+        }
+
         if (popularityChart) popularityChart.destroy();
         const popularityCtx = document.getElementById('categoryPopularityChart').getContext('2d');
         popularityChart = new Chart(popularityCtx, {
@@ -135,7 +152,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Question Lists
         const renderQuestionList = (elementId, questions, colorClass) => {
             const listElement = document.getElementById(elementId);
             listElement.innerHTML = '';
@@ -156,7 +172,6 @@ document.addEventListener('DOMContentLoaded', () => {
         renderQuestionList('hardest-questions-list', data.hardestQuestions, 'border-red-400');
         renderQuestionList('easiest-questions-list', data.easiestQuestions, 'border-green-400');
         
-        // Footer
         const today = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
         document.getElementById('footer-text').textContent = `ข้อมูลล่าสุดเมื่อ ${today}`;
     };
@@ -168,7 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            const response = await fetch(GAS_WEB_APP_URL); // No uid parameter for overall dashboard
+            const response = await fetch(GAS_WEB_APP_URL);
             if (!response.ok) throw new Error(`Server responded with status: ${response.status}`);
             const data = await response.json();
 
