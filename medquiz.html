@@ -8,7 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;700;800&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Sarabun', sans-serif;
@@ -28,18 +28,18 @@
 <body class="bg-gray-100">
 
     <div class="container mx-auto p-4 sm:p-6 lg:p-8">
-        <header class="mb-8 flex flex-wrap justify-between items-center gap-4">
+        <header class="mb-8 flex flex-wrap justify-between items-center gap-4 border-b-2 pb-6 border-gray-200">
             <!-- Left Side: Logo and Titles -->
             <div class="flex items-center">
-                <img src="https://storage.googleapis.com/gemini-prod/images/06351543-7f21-42a2-a6f9-715c0e21c168" alt="MedQuiz Logo" class="h-16 w-16 mr-4 rounded-full">
+                <img src="https://raw.githubusercontent.com/nong011/medphayao/main/LogoMedQuiz.png" alt="MedQuiz Logo" class="h-40 w-40 mr-8 rounded-full shadow-lg">
                 <div>
-                    <h1 class="text-3xl font-bold text-gray-800">Summary Quiz</h1>
-                    <p class="text-gray-500">Designed by Krairat Komdee, MD.</p>
+                    <h1 class="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-teal-400">MedQuiz</h1>
+                    <p class="text-xl text-gray-600 mt-1">Summary Quiz</p>
                 </div>
             </div>
             <!-- Right Side: QR Code -->
             <div class="text-center">
-                 <img src="https://storage.googleapis.com/gemini-prod/images/425a81e1-e1ef-429a-85d7-017415497255" alt="Add Line QR Code" class="w-24 h-24 rounded-lg shadow-md">
+                 <img src="https://raw.githubusercontent.com/nong011/medphayao/main/QRMedQuiz.jpg" alt="Add Line QR Code" class="w-24 h-24 rounded-lg shadow-md">
                  <p class="text-xs text-gray-500 mt-1">Add Line for updates</p>
             </div>
         </header>
@@ -225,6 +225,13 @@
         </div>
     </div>
 
+    <footer class="text-center py-6 mt-4">
+        <p class="text-sm text-gray-500">
+            © 2025 Designed by 
+            <a href="mailto:krairat.ko@gmail.com" class="text-blue-600 hover:underline">Krairat Komdee, MD.</a>
+        </p>
+    </footer>
+
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -287,7 +294,6 @@
             // --- Main Function ---
             async function fetchAllData() {
                 try {
-                    // *** FIXED: Use Promise.allSettled for robust fetching ***
                     const results = await Promise.allSettled([
                         fetch(urls.questions),
                         fetch(urls.students),
@@ -743,4 +749,5 @@
 
 </body>
 </html>
+
 
