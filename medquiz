@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - คลังข้อสอบและผลการเรียน</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif;
+        }
+        .table-auto th, .table-auto td {
+            padding: 0.75rem;
+            vertical-align: middle;
+        }
+        #score-modal {
+            transition: opacity 0.3s ease;
+        }
+        #categoryChart {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <header class="mb-8 flex flex-wrap justify-between items-center gap-4">
+            <!-- Left Side: Logo and Titles -->
+            <div class="flex items-center">
+                <img src="https://storage.googleapis.com/gemini-prod/images/06351543-7f21-42a2-a6f9-715c0e21c168" alt="MedQuiz Logo" class="h-16 w-16 mr-4 rounded-full">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800">Summary Quiz</h1>
+                    <p class="text-gray-500">Designed by Krairat Komdee, MD.</p>
+                </div>
+            </div>
+            <!-- Right Side: QR Code -->
+            <div class="text-center">
+                 <img src="https://storage.googleapis.com/gemini-prod/images/425a81e1-e1ef-429a-85d7-017415497255" alt="Add Line QR Code" class="w-24 h-24 rounded-lg shadow-md">
+                 <p class="text-xs text-gray-500 mt-1">Add Line for updates</p>
+            </div>
+        </header>
+
+        <!-- Loading and Error States -->
+        <div id="loader" class="text-center py-10">
+            <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto"></div>
+            <p class="mt-4 text-gray-600">กำลังดึงข้อมูลล่าสุด...</p>
+        </div>
+        <div id="error-message" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative text-center" role="alert">
+            <strong class="font-bold">เกิดข้อผิดพลาด!</strong>
+            <span class="block sm:inline" id="error-text">ไม่สามารถโหลดข้อมูลได้ กรุณาตรวจสอบว่า Google Sheet ของคุณได้ตั้งค่าการแชร์เป็น "ทุกคนที่มีลิงก์" (Anyone with the link)</span>
+        </div>
+
+        <!-- Dashboard Content -->
+        <div id="dashboard-content" class="hidden">
+            <!-- Part 1: Question Bank Overview with Difficulty Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <!-- Total Questions Card -->
+                <div class="bg-white p-5 rounded-xl shadow-md flex items-center">
+                     <div class="bg-blue-500 p-3 rounded-full text-white">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <h2 class="text-gray-500 text-base">ข้อสอบทั้งหมด</h2>
+                        <p id="total-questions" class="text-2xl font-bold text-gray-800">0</p>
+                    </div>
+                </div>
+                 <!-- Easy Card -->
+                <div class="bg-green-100 p-5 rounded-xl shadow-md">
+                    <h2 class="text-green-800 text-base font-semibold">Easy</h2>
+                    <p id="easy-pct" class="text-2xl font-bold text-green-800">0.00%</p>
+                </div>
+                <!-- Medium Card -->
+                <div class="bg-yellow-100 p-5 rounded-xl shadow-md">
+                     <h2 class="text-yellow-800 text-base font-semibold">Medium</h2>
+                    <p id="medium-pct" class="text-2xl font-bold text-yellow-800">0.00%</p>
+                </div>
+                <!-- Hard Card -->
+                <div class="bg-red-100 p-5 rounded-xl shadow-md">
+                     <h2 class="text-red-800 text-base font-semibold">Hard</h2>
+                    <p id="hard-pct" class="text-2xl font-bold text-red-800">0.00%</p>
+                </div>
+            </div>
+            
+            <!-- Interactive Chart Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <!-- Category Chart Card -->
+                <div class="bg-white p-4 sm:p-6 rounded-xl shadow-md">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-2">จำนวนข้อสอบตามหมวดหมู่ (Category)</h2>
+                    <p class="text-sm text-gray-500 mb-4">คลิกที่แท่งกราฟเพื่อกรองหัวข้อด้านขวา</p>
+                    <div class="relative h-96">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Topic Chart Card -->
+                <div class="bg-white p-4 sm:p-6 rounded-xl shadow-md">
+                    <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
+                        <h2 id="topic-chart-title" class="text-xl font-semibold text-gray-700">ภาพรวมทุกหัวข้อ (Topic)</h2>
+                        <button id="reset-filter-btn" class="hidden text-sm bg-blue-500 text-white py-1 px-3 rounded-full hover:bg-blue-600 transition-all">แสดงทั้งหมด</button>
+                    </div>
+                    <div class="relative h-96">
+                        <canvas id="topicChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top 10 Most Tested Categories -->
+            <div class="bg-white p-4 sm:p-6 rounded-xl shadow-md mb-8">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">10 หมวดหมู่ยอดนิยม (ที่นักเรียนเลือกสอบมากที่สุด)</h2>
+                <div class="overflow-x-auto">
+                    <table class="table-auto w-full text-left">
+                        <thead class="bg-gray-100 border-b-2 border-gray-200">
+                            <tr>
+                                <th class="text-sm font-semibold text-gray-600 w-16 text-center">อันดับ</th>
+                                <th class="text-sm font-semibold text-gray-600">หมวดหมู่ (Category)</th>
+                                <th class="text-sm font-semibold text-gray-600 text-right">จำนวนครั้งที่สอบ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="top-categories-table">
+                           <!-- Top categories data will be injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Topic Performance Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <!-- Easiest Topics -->
+                <div class="bg-white p-4 sm:p-6 rounded-xl shadow-md">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">5 หัวข้อที่ทำคะแนนได้ดีที่สุด</h2>
+                    <div class="overflow-x-auto">
+                        <table class="table-auto w-full text-left">
+                            <thead class="bg-gray-100 border-b-2 border-gray-200">
+                                <tr>
+                                    <th class="text-sm font-semibold text-gray-600 w-16 text-center">อันดับ</th>
+                                    <th class="text-sm font-semibold text-gray-600">หัวข้อ (Topic)</th>
+                                    <th class="text-sm font-semibold text-gray-600 text-right">คะแนนเฉลี่ย (%)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="top-easiest-topics-table">
+                               <!-- Easiest topics data -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- Hardest Topics -->
+                <div class="bg-white p-4 sm:p-6 rounded-xl shadow-md">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">5 หัวข้อที่ต้องปรับปรุง</h2>
+                    <div class="overflow-x-auto">
+                        <table class="table-auto w-full text-left">
+                            <thead class="bg-gray-100 border-b-2 border-gray-200">
+                                <tr>
+                                    <th class="text-sm font-semibold text-gray-600 w-16 text-center">อันดับ</th>
+                                    <th class="text-sm font-semibold text-gray-600">หัวข้อ (Topic)</th>
+                                    <th class="text-sm font-semibold text-gray-600 text-right">คะแนนเฉลี่ย (%)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="top-hardest-topics-table">
+                               <!-- Hardest topics data -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Part 2: Student Performance Leaderboards -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                 <!-- Weekly Leaderboard -->
+                <div class="bg-white p-4 sm:p-6 rounded-xl shadow-md">
+                    <h2 id="weekly-leaderboard-title" class="text-xl font-semibold text-gray-700 mb-4">Leaderboard (ประจำสัปดาห์นี้)</h2>
+                    <div class="overflow-x-auto">
+                        <table class="table-auto w-full text-left">
+                            <thead class="bg-gray-100 border-b-2 border-gray-200">
+                                <tr>
+                                    <th class="text-sm font-semibold text-gray-600 w-20 text-center">อันดับ</th>
+                                    <th class="text-sm font-semibold text-gray-600">ชื่อนักเรียน</th>
+                                    <th class="text-sm font-semibold text-gray-600 text-right">คะแนนเฉลี่ย (%)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="student-weekly-leaderboard-table">
+                               <!-- Weekly leaderboard data -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- All-Time Leaderboard -->
+                <div class="bg-white p-4 sm:p-6 rounded-xl shadow-md">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">Leaderboard (คะแนนรวมทั้งหมด)</h2>
+                    <div class="overflow-x-auto">
+                        <table class="table-auto w-full text-left">
+                            <thead class="bg-gray-100 border-b-2 border-gray-200">
+                                <tr>
+                                    <th class="text-sm font-semibold text-gray-600 w-16 text-center">อันดับ</th>
+                                    <th class="text-sm font-semibold text-gray-600">ชื่อนักเรียน</th>
+                                    <th class="text-sm font-semibold text-gray-600 text-right">คะแนนเฉลี่ย (%)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="student-leaderboard-table">
+                               <!-- All-time leaderboard data -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Score Detail Modal -->
+    <div id="score-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div class="p-4 border-b flex justify-between items-center">
+                <h3 class="text-lg font-semibold" id="modal-student-name"></h3>
+                <button id="close-modal" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+            </div>
+            <div id="modal-scores-container" class="p-6 max-h-80 overflow-y-auto">
+                <!-- Detailed scores will be injected here -->
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Configuration ---
+            const sheetId = '1GB8Q_l63f27NZp2xM3EHBAf2drdG-K0pQ1Fb1B-Vdcw';
+            const questionBankSheet = encodeURIComponent('Question Bank');
+            const studentsSheet = encodeURIComponent('Students');
+            const examHistorySheet = encodeURIComponent('Exam History');
+            
+            const urls = {
+                questions: `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${questionBankSheet}`,
+                students: `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${studentsSheet}`,
+                examHistory: `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${examHistorySheet}`
+            };
+
+            // --- DOM Elements ---
+            const loader = document.getElementById('loader');
+            const errorMessage = document.getElementById('error-message');
+            const errorText = document.getElementById('error-text');
+            const dashboardContent = document.getElementById('dashboard-content');
+            const modal = document.getElementById('score-modal');
+            const closeModalBtn = document.getElementById('close-modal');
+            const leaderboardTableBody = document.getElementById('student-leaderboard-table');
+            const weeklyLeaderboardTableBody = document.getElementById('student-weekly-leaderboard-table');
+            const weeklyLeaderboardTitle = document.getElementById('weekly-leaderboard-title');
+
+
+            let categoryChartInstance = null;
+            let topicChartInstance = null;
+            let allQuestionsData = [];
+            
+            // --- Modal Logic ---
+            closeModalBtn.addEventListener('click', () => modal.classList.add('hidden'));
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) modal.classList.add('hidden');
+            });
+
+            function openModal(studentName, scoresJson) {
+                const scores = JSON.parse(scoresJson);
+                document.getElementById('modal-student-name').textContent = `คะแนนรายวิชาของ: ${studentName}`;
+                const container = document.getElementById('modal-scores-container');
+                container.innerHTML = scores.map(score => `
+                    <div class="flex justify-between items-center text-sm py-2 border-b">
+                        <span class="text-gray-600">${score.category}</span>
+                        <span class="font-semibold text-gray-800">${score.averageScore.toFixed(2)}%</span>
+                    </div>`).join('');
+                modal.classList.remove('hidden');
+            }
+            
+            const clickableHandler = (e) => {
+                const studentRow = e.target.closest('.student-name-clickable');
+                if (studentRow) {
+                    openModal(studentRow.dataset.name, studentRow.dataset.scores);
+                }
+            };
+            leaderboardTableBody.addEventListener('click', clickableHandler);
+            weeklyLeaderboardTableBody.addEventListener('click', clickableHandler);
+
+
+            // --- Main Function ---
+            async function fetchAllData() {
+                try {
+                    // *** FIXED: Use Promise.allSettled for robust fetching ***
+                    const results = await Promise.allSettled([
+                        fetch(urls.questions),
+                        fetch(urls.students),
+                        fetch(urls.examHistory)
+                    ]);
+
+                    const failedFetches = [];
+                    const successfulResponses = [];
+                    const sheetNames = ['Question Bank', 'Students', 'Exam History'];
+
+                    results.forEach((result, index) => {
+                        if (result.status === 'fulfilled' && result.value.ok) {
+                            successfulResponses.push(result.value.text());
+                        } else {
+                            failedFetches.push(sheetNames[index]);
+                        }
+                    });
+
+                    if (failedFetches.length > 0) {
+                        throw new Error(`ไม่สามารถดึงข้อมูลจากชีต: ${failedFetches.join(', ')}`);
+                    }
+
+                    const [questionsCSV, studentsCSV, historyCSV] = await Promise.all(successfulResponses);
+
+                    allQuestionsData = parseCSV(questionsCSV);
+                    const studentsData = parseCSV(studentsCSV);
+                    const historyData = parseCSV(historyCSV);
+                    
+                    renderDifficultyStats(allQuestionsData);
+                    renderQuestionCharts();
+                    renderTopCategories(historyData);
+                    renderTopicPerformance(historyData); 
+                    renderLeaderboards(studentsData, historyData);
+                    
+                    loader.classList.add('hidden');
+                    dashboardContent.classList.remove('hidden');
+
+                } catch (error) {
+                    console.error('Fetch error:', error);
+                    errorText.textContent = `เกิดข้อผิดพลาด: ${error.message}`;
+                    loader.classList.add('hidden');
+                    errorMessage.classList.remove('hidden');
+                }
+            }
+
+            // --- Robust CSV Parsing Function ---
+            function parseCSV(csvText) {
+                if (!csvText) return [];
+                const rawLines = csvText.trim().split(/\r?\n/);
+                const mergedLines = [];
+                let currentRecord = '';
+                for (const line of rawLines) {
+                    currentRecord += line;
+                    const quoteCount = (currentRecord.match(/"/g) || []).length;
+                    if (quoteCount % 2 === 0) {
+                        mergedLines.push(currentRecord);
+                        currentRecord = '';
+                    } else {
+                        currentRecord += '\n';
+                    }
+                }
+                if (currentRecord) mergedLines.push(currentRecord);
+                if (mergedLines.length < 2) return [];
+                const headers = mergedLines.shift().split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+                const regex = /,(?=(?:(?:[^"]*"){2})*[^"]*$)/;
+                return mergedLines.map(line => {
+                    if (!line.trim()) return null;
+                    const values = line.split(regex);
+                    const obj = {};
+                    headers.forEach((header, i) => {
+                        let value = values[i] || '';
+                        value = value.trim().replace(/^"|"$/g, '').replace(/""/g, '"');
+                        obj[header] = value;
+                    });
+                    return obj;
+                }).filter(row => row !== null);
+            }
+            
+            // --- Difficulty Stats Calculation ---
+            function renderDifficultyStats(questionData) {
+                if (!questionData[0] || !questionData[0].hasOwnProperty('Difficulty')) {
+                    console.warn('Question Bank sheet is missing Difficulty column.');
+                    return;
+                }
+
+                const difficultyCounts = { easy: 0, medium: 0, hard: 0 };
+                let totalCounted = 0;
+
+                questionData.forEach(row => {
+                    const difficulty = row.Difficulty ? row.Difficulty.trim().toLowerCase() : '';
+                    if (difficulty === 'easy') {
+                        difficultyCounts.easy++;
+                        totalCounted++;
+                    } else if (difficulty === 'medium') {
+                        difficultyCounts.medium++;
+                        totalCounted++;
+                    } else if (difficulty === 'hard') {
+                        difficultyCounts.hard++;
+                        totalCounted++;
+                    }
+                });
+
+                const easyPct = totalCounted > 0 ? (difficultyCounts.easy / totalCounted) * 100 : 0;
+                const mediumPct = totalCounted > 0 ? (difficultyCounts.medium / totalCounted) * 100 : 0;
+                const hardPct = totalCounted > 0 ? (difficultyCounts.hard / totalCounted) * 100 : 0;
+
+                document.getElementById('easy-pct').textContent = `${easyPct.toFixed(2)}%`;
+                document.getElementById('medium-pct').textContent = `${mediumPct.toFixed(2)}%`;
+                document.getElementById('hard-pct').textContent = `${hardPct.toFixed(2)}%`;
+            }
+
+
+            // --- Part 1: Question Bank Charts ---
+            function renderQuestionCharts() {
+                if (!allQuestionsData[0] || !allQuestionsData[0].hasOwnProperty('Category') || !allQuestionsData[0].hasOwnProperty('Topic')) {
+                    throw new Error('Sheet "Question Bank" ต้องมีคอลัมน์ "Category" และ "Topic"');
+                }
+                document.getElementById('total-questions').textContent = allQuestionsData.length.toLocaleString();
+
+                const categoryCounts = allQuestionsData.reduce((acc, row) => {
+                    const category = row.Category ? row.Category.trim() : 'ไม่ระบุ';
+                    if (category && category !== 'ไม่ระบุ') { 
+                       acc[category] = (acc[category] || 0) + 1;
+                    }
+                    return acc;
+                }, {});
+
+                const sortedCategories = Object.entries(categoryCounts).sort(([,a],[,b]) => b-a);
+                const categoryLabels = sortedCategories.map(item => item[0]);
+                const categoryData = sortedCategories.map(item => item[1]);
+                
+                const chartOptions = {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: { padding: { left: 20 } },
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: { display: true, text: 'จำนวนข้อ', font: { family: "'Sarabun', sans-serif" } }
+                        },
+                        y: { ticks: { font: { family: "'Sarabun', sans-serif" } } }
+                    }
+                };
+
+                const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+                if (categoryChartInstance) categoryChartInstance.destroy();
+                categoryChartInstance = new Chart(categoryCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: categoryLabels,
+                        datasets: [{ label: 'จำนวนข้อ', data: categoryData, backgroundColor: 'rgba(59, 130, 246, 0.7)' }]
+                    },
+                    options: {
+                        ...chartOptions,
+                        onClick: (event, elements) => {
+                            if (elements.length > 0) {
+                                const selectedCategory = categoryLabels[elements[0].index];
+                                filterTopicsByCategory(selectedCategory);
+                            }
+                        }
+                    }
+                });
+                
+                const topicCtx = document.getElementById('topicChart').getContext('2d');
+                if (topicChartInstance) topicChartInstance.destroy();
+                topicChartInstance = new Chart(topicCtx, {
+                    type: 'bar',
+                    data: { labels: [], datasets: [{ label: 'จำนวนข้อ', data: [], backgroundColor: 'rgba(22, 163, 74, 0.7)' }] },
+                    options: chartOptions
+                });
+
+                updateTopicChart(allQuestionsData); 
+                
+                document.getElementById('reset-filter-btn').addEventListener('click', () => {
+                    updateTopicChart(allQuestionsData);
+                    document.getElementById('reset-filter-btn').classList.add('hidden');
+                    document.getElementById('topic-chart-title').textContent = 'ภาพรวมทุกหัวข้อ (Topic)';
+                });
+            }
+            
+            function updateTopicChart(data) {
+                const topicCounts = data.reduce((acc, row) => {
+                    const topic = row.Topic ? row.Topic.trim() : 'ไม่ระบุ';
+                    if (topic && topic !== 'ไม่ระบุ') {
+                        acc[topic] = (acc[topic] || 0) + 1;
+                    }
+                    return acc;
+                }, {});
+                
+                const sortedTopics = Object.entries(topicCounts).sort(([,a],[,b]) => b-a);
+                topicChartInstance.data.labels = sortedTopics.map(item => item[0]);
+                topicChartInstance.data.datasets[0].data = sortedTopics.map(item => item[1]);
+                topicChartInstance.update();
+            }
+
+            function filterTopicsByCategory(category) {
+                const filteredData = allQuestionsData.filter(row => row.Category && row.Category.trim() === category);
+                updateTopicChart(filteredData);
+                document.getElementById('topic-chart-title').textContent = `หัวข้อใน: ${category}`;
+                document.getElementById('reset-filter-btn').classList.remove('hidden');
+            }
+
+            // --- Top 10 Most Tested Categories Table ---
+            function renderTopCategories(historyData) {
+                if (!historyData[0] || !historyData[0].hasOwnProperty('Category')) {
+                    console.warn('Exam History sheet is missing Category column, cannot render top categories.');
+                    return;
+                }
+
+                const categoryCounts = historyData.reduce((acc, row) => {
+                    const category = row.Category ? row.Category.trim() : 'ไม่ระบุ';
+                    if (category && category !== 'ไม่ระบุ') {
+                       acc[category] = (acc[category] || 0) + 1;
+                    }
+                    return acc;
+                }, {});
+
+                const sortedCategories = Object.entries(categoryCounts)
+                    .sort(([,a],[,b]) => b-a)
+                    .slice(0, 10);
+
+                const tableBody = document.getElementById('top-categories-table');
+                tableBody.innerHTML = '';
+
+                if (sortedCategories.length === 0) {
+                    tableBody.innerHTML = `<tr><td colspan="3" class="text-center text-gray-500 py-4">ไม่พบข้อมูลการสอบ</td></tr>`;
+                    return;
+                }
+
+                sortedCategories.forEach((item, index) => {
+                    const rank = index + 1;
+                    const [categoryName, count] = item;
+                    const row = document.createElement('tr');
+                    row.className = 'border-b hover:bg-gray-50';
+                    row.innerHTML = `
+                        <td class="text-center font-bold text-lg ${rank <= 3 ? 'text-yellow-500' : 'text-gray-600'}">${rank}</td>
+                        <td class="font-medium text-gray-900">${categoryName}</td>
+                        <td class="text-right font-bold text-blue-600">${count.toLocaleString()} ครั้ง</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            }
+
+            // --- Topic Performance Tables ---
+            function renderTopicPerformance(historyData) {
+                 if (!historyData[0] || !historyData[0].hasOwnProperty('Topic')) {
+                    console.warn('Exam History sheet is missing Topic column, cannot render topic performance.');
+                    return;
+                }
+
+                const topicTotals = historyData.reduce((acc, record) => {
+                    const topic = record.Topic ? record.Topic.trim() : '';
+                    if (!topic) return acc;
+                    if (!acc[topic]) acc[topic] = { totalCorrect: 0, totalQuestions: 0 };
+                    
+                    const correct = parseInt(record.CorrectAnswers);
+                    const total = parseInt(record.TotalQuestions);
+                    if (!isNaN(correct) && !isNaN(total) && total > 0) {
+                        acc[topic].totalCorrect += correct;
+                        acc[topic].totalQuestions += total;
+                    }
+                    return acc;
+                }, {});
+
+                const topicAverages = Object.entries(topicTotals).map(([topic, totals]) => {
+                    const average = (totals.totalQuestions > 0) ? (totals.totalCorrect / totals.totalQuestions) * 100 : 0;
+                    return { topic, average };
+                });
+
+                const easiestTopics = [...topicAverages].sort((a, b) => b.average - a.average).slice(0, 5);
+                const hardestTopics = [...topicAverages].sort((a, b) => a.average - b.average).slice(0, 5);
+                
+                const renderPerfTable = (tableId, data, colorClass) => {
+                    const tableBody = document.getElementById(tableId);
+                    tableBody.innerHTML = '';
+                     if (data.length === 0) {
+                        tableBody.innerHTML = `<tr><td colspan="3" class="text-center text-gray-500 py-4">ไม่พบข้อมูล</td></tr>`;
+                        return;
+                    }
+                    data.forEach((item, index) => {
+                        const rank = index + 1;
+                        const row = document.createElement('tr');
+                        row.className = 'border-b hover:bg-gray-50';
+                        row.innerHTML = `
+                            <td class="text-center font-bold text-lg ${rank <= 3 ? 'text-yellow-500' : 'text-gray-600'}">${rank}</td>
+                            <td class="font-medium text-gray-900">${item.topic}</td>
+                            <td class="text-right font-bold ${colorClass}">${item.average.toFixed(2)}%</td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                };
+                
+                renderPerfTable('top-easiest-topics-table', easiestTopics, 'text-green-600');
+                renderPerfTable('top-hardest-topics-table', hardestTopics, 'text-red-600');
+            }
+
+
+            // --- Part 2: Student Leaderboards Rendering ---
+            function renderLeaderboards(students, allHistory) {
+                if (!students[0] || !students[0].hasOwnProperty('UserID') || !students[0].hasOwnProperty('DisplayName')) {
+                    throw new Error('"Students" sheet is missing UserID or DisplayName columns.');
+                }
+                if (!allHistory[0] || !allHistory[0].hasOwnProperty('UserID')) {
+                    throw new Error('"Exam History" sheet is missing required columns.');
+                }
+
+                const studentMap = new Map(students.map(s => [s.UserID.trim(), s.DisplayName.trim()]));
+
+                // --- Date Calculations for Current and Previous Week ---
+                const today = new Date();
+                const dayOfWeek = today.getDay(); 
+                const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+                
+                const startOfWeek = new Date(today.getFullYear(), today.getMonth(), diff);
+                startOfWeek.setHours(0, 0, 0, 0);
+                
+                const endOfWeek = new Date(startOfWeek);
+                endOfWeek.setDate(startOfWeek.getDate() + 6);
+                endOfWeek.setHours(23, 59, 59, 999);
+                
+                const startOfPreviousWeek = new Date(startOfWeek);
+                startOfPreviousWeek.setDate(startOfWeek.getDate() - 7);
+                const endOfPreviousWeek = new Date(startOfWeek);
+                endOfPreviousWeek.setDate(startOfWeek.getDate() - 1);
+                endOfPreviousWeek.setHours(23, 59, 59, 999);
+
+                const weeklyHistory = allHistory.filter(r => r.Timestamp && new Date(r.Timestamp) >= startOfWeek && new Date(r.Timestamp) <= endOfWeek);
+                const previousWeekHistory = allHistory.filter(r => r.Timestamp && new Date(r.Timestamp) >= startOfPreviousWeek && new Date(r.Timestamp) <= endOfPreviousWeek);
+                
+                const formatDate = (date) => date.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+                weeklyLeaderboardTitle.textContent = `Leaderboard (${formatDate(startOfWeek)} - ${formatDate(endOfWeek)})`;
+                
+                
+                // --- Generic function to build a leaderboard ---
+                const buildLeaderboard = (historyData) => {
+                    const perCategoryTotals = historyData.reduce((acc, record) => {
+                        const userId = record.UserID ? record.UserID.trim() : '';
+                        const category = record.Category ? record.Category.trim() : '';
+                        if (!userId || !category) return acc;
+                        const key = `${userId}-${category}`;
+                        if (!acc[key]) acc[key] = { totalCorrect: 0, totalQuestions: 0 };
+                        const correct = parseInt(record.CorrectAnswers);
+                        const total = parseInt(record.TotalQuestions);
+                        if (!isNaN(correct) && !isNaN(total) && total > 0) {
+                            acc[key].totalCorrect += correct;
+                            acc[key].totalQuestions += total;
+                        }
+                        return acc;
+                    }, {});
+
+                    const averageScoresByCategory = Object.entries(perCategoryTotals).map(([key, totals]) => {
+                        const separatorIndex = key.lastIndexOf('-');
+                        const userId = key.substring(0, separatorIndex);
+                        const category = key.substring(separatorIndex + 1);
+                        const avg = (totals.totalQuestions > 0) ? (totals.totalCorrect / totals.totalQuestions) * 100 : 0;
+                        return { userId, category, averageScore: avg };
+                    });
+                
+                    const detailedScoresGrouped = averageScoresByCategory.reduce((acc, score) => {
+                        if (!acc[score.userId]) acc[score.userId] = [];
+                        acc[score.userId].push({ category: score.category, averageScore: score.averageScore });
+                        return acc;
+                    }, {});
+                
+                    const overallTotals = historyData.reduce((acc, record) => {
+                        const userId = record.UserID ? record.UserID.trim() : '';
+                        if (!userId) return acc;
+                        if (!acc[userId]) acc[userId] = { totalCorrect: 0, totalQuestions: 0 };
+                        const correct = parseInt(record.CorrectAnswers);
+                        const total = parseInt(record.TotalQuestions);
+                        if (!isNaN(correct) && !isNaN(total) && total > 0) {
+                            acc[userId].totalCorrect += correct;
+                            acc[userId].totalQuestions += total;
+                        }
+                        return acc;
+                    }, {});
+
+                    return Object.keys(overallTotals).map(userId => {
+                        const studentTotals = overallTotals[userId];
+                        const studentDetails = detailedScoresGrouped[userId] || [];
+                        let overallAverage = (studentTotals.totalQuestions > 0) ? (studentTotals.totalCorrect / studentTotals.totalQuestions) * 100 : 0;
+                        return {
+                            displayName: studentMap.get(userId) || userId,
+                            overallAverage,
+                            detailedScores: studentDetails
+                        };
+                    })
+                    .sort((a, b) => b.overallAverage - a.overallAverage)
+                    .slice(0, 10);
+                };
+
+                // --- Generic function to render a table ---
+                const renderTable = (tableBody, leaderboardData, { isWeekly = false, previousRanks = new Map() } = {}) => {
+                    tableBody.innerHTML = ''; 
+                    if (leaderboardData.length === 0) {
+                        const message = isWeekly ? "ยังไม่มีข้อมูลคะแนนในสัปดาห์นี้" : "ยังไม่มีข้อมูลคะแนน";
+                        tableBody.innerHTML = `<tr><td colspan="3" class="text-center text-gray-500 py-4">${message}</td></tr>`;
+                        return;
+                    }
+                    leaderboardData.forEach((student, index) => {
+                        const rank = index + 1;
+                        const crown = rank <= 5 ? '👑' : '';
+                        
+                        let rankChangeIndicator = '';
+                        if (isWeekly) {
+                            const previousRank = previousRanks.get(student.displayName);
+                            if (previousRank) {
+                                if (rank < previousRank) rankChangeIndicator = `<span class="text-green-500 font-bold text-lg">▲</span>`;
+                                else if (rank > previousRank) rankChangeIndicator = `<span class="text-red-500 font-bold text-lg">▼</span>`;
+                                else rankChangeIndicator = `<span class="text-gray-400 font-bold text-lg">-</span>`;
+                            } else {
+                                rankChangeIndicator = `<span class="text-xs bg-blue-500 text-white font-bold rounded-full px-2 py-0.5">NEW</span>`;
+                            }
+                        }
+
+                        const row = document.createElement('tr');
+                        row.className = 'border-b hover:bg-gray-50';
+                        row.innerHTML = `
+                             <td class="text-center">
+                                <div class="flex items-center justify-center gap-x-2">
+                                    <span class="font-bold text-lg ${rank <= 3 ? 'text-yellow-500' : 'text-gray-600'}">${rank}</span>
+                                    ${rankChangeIndicator}
+                                </div>
+                            </td>
+                            <td class="font-medium text-gray-900">
+                                <span class="student-name-clickable cursor-pointer hover:underline" data-name="${student.displayName}" data-scores='${JSON.stringify(student.detailedScores)}'>
+                                    ${crown} ${student.displayName}
+                                </span>
+                            </td>
+                            <td class="text-right font-bold text-blue-600">${student.overallAverage.toFixed(2)}%</td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                };
+                
+                // --- Build and Render Both Leaderboards ---
+                const weeklyLeaderboard = buildLeaderboard(weeklyHistory);
+                const previousWeeklyLeaderboard = buildLeaderboard(previousWeekHistory);
+                const allTimeLeaderboard = buildLeaderboard(allHistory);
+                
+                const previousRankMap = new Map(previousWeeklyLeaderboard.map((student, index) => [student.displayName, index + 1]));
+
+                renderTable(weeklyLeaderboardTableBody, weeklyLeaderboard, { isWeekly: true, previousRanks: previousRankMap });
+                renderTable(leaderboardTableBody, allTimeLeaderboard);
+            }
+            
+            // --- Initial Call ---
+            fetchAllData();
+        });
+    </script>
+
+</body>
+</html>
+
