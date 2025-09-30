@@ -17,7 +17,7 @@
             padding: 0.75rem;
             vertical-align: middle;
         }
-        #score-modal {
+        #score-modal, #gemini-modal {
             transition: opacity 0.3s ease;
         }
         #categoryChart {
@@ -129,40 +129,41 @@
                 </div>
             </div>
 
-            <!-- Topic Performance Section -->
+            <!-- CORRECTED: Category Performance Section -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                <!-- Easiest Topics -->
+                <!-- Easiest Categories -->
                 <div class="bg-white p-4 sm:p-6 rounded-xl shadow-md">
-                    <h2 class="text-xl font-semibold text-gray-700 mb-4">5 หัวข้อที่ทำคะแนนได้ดีที่สุด</h2>
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">5 หมวดหมู่ที่ทำคะแนนได้ดีที่สุด</h2>
                     <div class="overflow-x-auto">
                         <table class="table-auto w-full text-left">
                             <thead class="bg-gray-100 border-b-2 border-gray-200">
                                 <tr>
                                     <th class="text-sm font-semibold text-gray-600 w-16 text-center">อันดับ</th>
-                                    <th class="text-sm font-semibold text-gray-600">หัวข้อ (Topic)</th>
+                                    <th class="text-sm font-semibold text-gray-600">หมวดหมู่ (Category)</th>
                                     <th class="text-sm font-semibold text-gray-600 text-right">คะแนนเฉลี่ย (%)</th>
                                 </tr>
                             </thead>
-                            <tbody id="top-easiest-topics-table">
-                               <!-- Easiest topics data -->
+                            <tbody id="top-easiest-categories-table">
+                               <!-- Easiest categories data -->
                             </tbody>
                         </table>
                     </div>
                 </div>
-                <!-- Hardest Topics -->
+                <!-- Hardest Categories with Gemini Feature -->
                 <div class="bg-white p-4 sm:p-6 rounded-xl shadow-md">
-                    <h2 class="text-xl font-semibold text-gray-700 mb-4">5 หัวข้อที่ต้องปรับปรุง</h2>
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">5 หมวดหมู่ที่ต้องปรับปรุง</h2>
                     <div class="overflow-x-auto">
                         <table class="table-auto w-full text-left">
                             <thead class="bg-gray-100 border-b-2 border-gray-200">
                                 <tr>
                                     <th class="text-sm font-semibold text-gray-600 w-16 text-center">อันดับ</th>
-                                    <th class="text-sm font-semibold text-gray-600">หัวข้อ (Topic)</th>
+                                    <th class="text-sm font-semibold text-gray-600">หมวดหมู่ (Category)</th>
                                     <th class="text-sm font-semibold text-gray-600 text-right">คะแนนเฉลี่ย (%)</th>
+                                    <th class="text-sm font-semibold text-gray-600 text-center">AI</th>
                                 </tr>
                             </thead>
-                            <tbody id="top-hardest-topics-table">
-                               <!-- Hardest topics data -->
+                            <tbody id="top-hardest-categories-table">
+                               <!-- Hardest categories data -->
                             </tbody>
                         </table>
                     </div>
@@ -170,7 +171,7 @@
             </div>
 
 
-            <!-- Part 2: Student Performance Leaderboards -->
+            <!-- Student Performance Leaderboards -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                  <!-- Weekly Leaderboard -->
                 <div class="bg-white p-4 sm:p-6 rounded-xl shadow-md">
@@ -225,6 +226,22 @@
         </div>
     </div>
 
+    <!-- Gemini Explanation Modal -->
+    <div id="gemini-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl transform transition-all">
+            <div class="p-4 border-b flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                    <span class="text-2xl mr-2">✨</span> AI ช่วยอธิบาย
+                </h3>
+                <button id="close-gemini-modal" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+            </div>
+            <div id="gemini-content" class="p-6 max-h-[70vh] overflow-y-auto prose prose-sm sm:prose-base">
+                <!-- Gemini content will be injected here -->
+            </div>
+        </div>
+    </div>
+
+
     <footer class="text-center py-6 mt-4">
         <p class="text-sm text-gray-500">
             © 2025 Designed by 
@@ -252,22 +269,33 @@
             const errorMessage = document.getElementById('error-message');
             const errorText = document.getElementById('error-text');
             const dashboardContent = document.getElementById('dashboard-content');
-            const modal = document.getElementById('score-modal');
-            const closeModalBtn = document.getElementById('close-modal');
+            const scoreModal = document.getElementById('score-modal');
+            const closeScoreModalBtn = document.getElementById('close-modal');
             const leaderboardTableBody = document.getElementById('student-leaderboard-table');
             const weeklyLeaderboardTableBody = document.getElementById('student-weekly-leaderboard-table');
             const weeklyLeaderboardTitle = document.getElementById('weekly-leaderboard-title');
+            const hardestTopicsTable = document.getElementById('top-hardest-categories-table');
 
+            // --- Gemini Modal Elements ---
+            const geminiModal = document.getElementById('gemini-modal');
+            const closeGeminiModalBtn = document.getElementById('close-gemini-modal');
+            const geminiContent = document.getElementById('gemini-content');
 
             let categoryChartInstance = null;
             let topicChartInstance = null;
             let allQuestionsData = [];
             
             // --- Modal Logic ---
-            closeModalBtn.addEventListener('click', () => modal.classList.add('hidden'));
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) modal.classList.add('hidden');
+            closeScoreModalBtn.addEventListener('click', () => scoreModal.classList.add('hidden'));
+            scoreModal.addEventListener('click', (e) => {
+                if (e.target === scoreModal) scoreModal.classList.add('hidden');
             });
+            
+            closeGeminiModalBtn.addEventListener('click', () => geminiModal.classList.add('hidden'));
+            geminiModal.addEventListener('click', (e) => {
+                if (e.target === geminiModal) geminiModal.classList.add('hidden');
+            });
+
 
             function openModal(studentName, scoresJson) {
                 const scores = JSON.parse(scoresJson);
@@ -278,7 +306,7 @@
                         <span class="text-gray-600">${score.category}</span>
                         <span class="font-semibold text-gray-800">${score.averageScore.toFixed(2)}%</span>
                     </div>`).join('');
-                modal.classList.remove('hidden');
+                scoreModal.classList.remove('hidden');
             }
             
             const clickableHandler = (e) => {
@@ -289,6 +317,75 @@
             };
             leaderboardTableBody.addEventListener('click', clickableHandler);
             weeklyLeaderboardTableBody.addEventListener('click', clickableHandler);
+
+            // --- Gemini API Call Logic ---
+            hardestTopicsTable.addEventListener('click', (e) => {
+                const geminiBtn = e.target.closest('.gemini-btn');
+                if (geminiBtn) {
+                    const category = geminiBtn.dataset.category;
+                    callGeminiAPI(category);
+                }
+            });
+
+            async function callGeminiAPI(category, retries = 3, delay = 1000) {
+                geminiContent.innerHTML = `<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div><p class="text-center mt-2">AI กำลังเตรียมคำอธิบาย...</p>`;
+                geminiModal.classList.remove('hidden');
+
+                const systemPrompt = "Act as a friendly and knowledgeable medical professor. Explain the following medical topic in Thai, in a simple and easy-to-understand manner for a medical student who is struggling. Use clear headings, bullet points, and a short clinical example at the end. The response should be in Markdown format.";
+                const userQuery = `Please explain the topic: "${category}"`;
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                
+                const payload = {
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                };
+
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        if (response.status === 429 && retries > 0) {
+                            await new Promise(res => setTimeout(res, delay));
+                            return callGeminiAPI(category, retries - 1, delay * 2);
+                        }
+                        throw new Error(`API Error: ${response.statusText}`);
+                    }
+                    
+                    const result = await response.json();
+                    const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                    
+                    if (text) {
+                        // A simple markdown to HTML converter
+                        let html = text
+                            .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+                            .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+                            .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+                            .replace(/^\* (.*$)/gim, '<li>$1</li>')
+                            .replace(/\*\*(.*)\*\*/g, '<strong>$1</strong>')
+                            .replace(/\*(.*)\*/g, '<em>$1</em>')
+                            .replace(/<\/li>\n<li>/g, '</li><li>') // fix list spacing
+                            .replace(/\n/g, '<br>');
+                        
+                        // Wrap lists
+                        if (html.includes('<li>')) {
+                           html = html.replace(/<li>/,'<ul><li>').replace(/<\/li>(?!<li>)/,'</li></ul>');
+                        }
+
+                        geminiContent.innerHTML = html;
+                    } else {
+                       throw new Error("No content received from API.");
+                    }
+
+                } catch(error) {
+                    console.error("Gemini API call failed:", error);
+                    geminiContent.innerHTML = `<p class="text-red-500 text-center">ขออภัย, ไม่สามารถเรียกคำอธิบายจาก AI ได้ในขณะนี้</p>`;
+                }
+            }
 
 
             // --- Main Function ---
@@ -325,7 +422,7 @@
                     renderDifficultyStats(allQuestionsData);
                     renderQuestionCharts();
                     renderTopCategories(historyData);
-                    renderTopicPerformance(historyData); 
+                    renderCategoryPerformance(historyData); 
                     renderLeaderboards(studentsData, historyData);
                     
                     loader.classList.add('hidden');
@@ -539,61 +636,69 @@
                 });
             }
 
-            // --- Topic Performance Tables ---
-            function renderTopicPerformance(historyData) {
-                 if (!historyData[0] || !historyData[0].hasOwnProperty('Topic')) {
-                    console.warn('Exam History sheet is missing Topic column, cannot render topic performance.');
+            // --- CORRECTED: Category Performance Tables ---
+            function renderCategoryPerformance(historyData) {
+                 if (!historyData[0] || !historyData[0].hasOwnProperty('Category')) {
+                    console.warn('Exam History sheet is missing Category column, cannot render category performance.');
                     return;
                 }
 
-                const topicTotals = historyData.reduce((acc, record) => {
-                    const topic = record.Topic ? record.Topic.trim() : '';
-                    if (!topic) return acc;
-                    if (!acc[topic]) acc[topic] = { totalCorrect: 0, totalQuestions: 0 };
+                const categoryTotals = historyData.reduce((acc, record) => {
+                    const category = record.Category ? record.Category.trim() : '';
+                    if (!category) return acc;
+                    if (!acc[category]) acc[category] = { totalCorrect: 0, totalQuestions: 0 };
                     
                     const correct = parseInt(record.CorrectAnswers);
                     const total = parseInt(record.TotalQuestions);
                     if (!isNaN(correct) && !isNaN(total) && total > 0) {
-                        acc[topic].totalCorrect += correct;
-                        acc[topic].totalQuestions += total;
+                        acc[category].totalCorrect += correct;
+                        acc[category].totalQuestions += total;
                     }
                     return acc;
                 }, {});
 
-                const topicAverages = Object.entries(topicTotals).map(([topic, totals]) => {
+                const categoryAverages = Object.entries(categoryTotals).map(([category, totals]) => {
                     const average = (totals.totalQuestions > 0) ? (totals.totalCorrect / totals.totalQuestions) * 100 : 0;
-                    return { topic, average };
+                    return { category, average };
                 });
 
-                const easiestTopics = [...topicAverages].sort((a, b) => b.average - a.average).slice(0, 5);
-                const hardestTopics = [...topicAverages].sort((a, b) => a.average - b.average).slice(0, 5);
+                const easiestCategories = [...categoryAverages].sort((a, b) => b.average - a.average).slice(0, 5);
+                const hardestCategories = [...categoryAverages].sort((a, b) => a.average - b.average).slice(0, 5);
                 
-                const renderPerfTable = (tableId, data, colorClass) => {
+                const renderPerfTable = (tableId, data, colorClass, isHardest) => {
                     const tableBody = document.getElementById(tableId);
                     tableBody.innerHTML = '';
                      if (data.length === 0) {
-                        tableBody.innerHTML = `<tr><td colspan="3" class="text-center text-gray-500 py-4">ไม่พบข้อมูล</td></tr>`;
+                        tableBody.innerHTML = `<tr><td colspan="4" class="text-center text-gray-500 py-4">ไม่พบข้อมูล</td></tr>`;
                         return;
                     }
                     data.forEach((item, index) => {
                         const rank = index + 1;
+                        const geminiButton = isHardest ? 
+                            `<td class="text-center">
+                                <button class="gemini-btn p-1.5 rounded-full bg-blue-100 hover:bg-blue-200 text-blue-600 transition" data-category="${item.category}" title="AI ช่วยอธิบาย">
+                                ✨
+                                </button>
+                             </td>` : '';
+                        
                         const row = document.createElement('tr');
                         row.className = 'border-b hover:bg-gray-50';
                         row.innerHTML = `
                             <td class="text-center font-bold text-lg ${rank <= 3 ? 'text-yellow-500' : 'text-gray-600'}">${rank}</td>
-                            <td class="font-medium text-gray-900">${item.topic}</td>
+                            <td class="font-medium text-gray-900">${item.category}</td>
                             <td class="text-right font-bold ${colorClass}">${item.average.toFixed(2)}%</td>
+                            ${geminiButton}
                         `;
                         tableBody.appendChild(row);
                     });
                 };
                 
-                renderPerfTable('top-easiest-topics-table', easiestTopics, 'text-green-600');
-                renderPerfTable('top-hardest-topics-table', hardestTopics, 'text-red-600');
+                renderPerfTable('top-easiest-categories-table', easiestCategories, 'text-green-600', false);
+                renderPerfTable('top-hardest-categories-table', hardestCategories, 'text-red-600', true);
             }
 
 
-            // --- Part 2: Student Leaderboards Rendering ---
+            // --- Student Leaderboards Rendering ---
             function renderLeaderboards(students, allHistory) {
                 if (!students[0] || !students[0].hasOwnProperty('UserID') || !students[0].hasOwnProperty('DisplayName')) {
                     throw new Error('"Students" sheet is missing UserID or DisplayName columns.');
@@ -604,7 +709,6 @@
 
                 const studentMap = new Map(students.map(s => [s.UserID.trim(), s.DisplayName.trim()]));
 
-                // --- Date Calculations for Current and Previous Week ---
                 const today = new Date();
                 const dayOfWeek = today.getDay(); 
                 const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
@@ -629,7 +733,6 @@
                 weeklyLeaderboardTitle.textContent = `Leaderboard (${formatDate(startOfWeek)} - ${formatDate(endOfWeek)})`;
                 
                 
-                // --- Generic function to build a leaderboard ---
                 const buildLeaderboard = (historyData) => {
                     const perCategoryTotals = historyData.reduce((acc, record) => {
                         const userId = record.UserID ? record.UserID.trim() : '';
@@ -687,7 +790,6 @@
                     .slice(0, 10);
                 };
 
-                // --- Generic function to render a table ---
                 const renderTable = (tableBody, leaderboardData, { isWeekly = false, previousRanks = new Map() } = {}) => {
                     tableBody.innerHTML = ''; 
                     if (leaderboardData.length === 0) {
@@ -731,7 +833,6 @@
                     });
                 };
                 
-                // --- Build and Render Both Leaderboards ---
                 const weeklyLeaderboard = buildLeaderboard(weeklyHistory);
                 const previousWeeklyLeaderboard = buildLeaderboard(previousWeekHistory);
                 const allTimeLeaderboard = buildLeaderboard(allHistory);
@@ -749,5 +850,4 @@
 
 </body>
 </html>
-
 
