@@ -29,25 +29,28 @@
 
     <div id="dashboard-card" class="bg-white rounded-xl shadow-2xl p-6 md:p-10 w-full max-w-4xl">
         
-        <!-- NEW HEADER: Logo, English Title, and QR Code -->
-        <div class="flex justify-between items-center mb-6 border-b pb-4 border-gray-100">
-            <!-- 1. Left: Logo and English Title -->
-            <div class="flex items-center gap-3">
-                <!-- LOGO: Increased size 3x -->
+        <!-- UPDATED HEADER: Logo (Left), English Title (CENTERED), and QR Code (Right) -->
+        <!-- Use Grid Layout: [Auto width for Logo] [Fill width for Centered Title] [Auto width for QR] -->
+        <div class="grid grid-cols-[auto_1fr_auto] items-center mb-6 border-b pb-4 border-gray-100">
+            
+            <!-- 1. Left Column (Logo) -->
+            <div class="flex justify-start items-center">
+                <!-- LOGO: Reduced size (h-24 / md:h-32) -->
                 <img src="https://raw.githubusercontent.com/nong011/medphayao/9cec28e714bdf348fe9a53d56bfdcab031d593e5/logobp.png" 
                      alt="BP Monitoring Logo" 
-                     class="h-48 w-48 md:h-60 md:w-60 rounded-full shadow-lg object-cover">
-                <!--img src="https://raw.githubusercontent.com/nong011/medphayao/9cec28e714bdf348fe9a53d56bfdcab031d593e5/logobp.png" alt="MedQuiz Logo" class="h-30 w-30 mr-8 rounded-full shadow-lg"-->
-                <div class="flex flex-col justify-center">
-                    <!-- Main English Title (large gradient) -->
-                    <span class="text-3xl md:text-4xl font-extrabold gradient-text leading-tight">Self-Monitoring</span>
-                    <!-- Subtitle (smaller gray text) -->
-                    <span class="text-sm md:text-base font-semibold text-gray-500 mt-[-4px]">Home Blood Pressure</span>
-                </div>
+                     class="h-24 w-24 md:h-32 md:w-32 rounded-full shadow-lg object-cover">
+            </div>
+
+            <!-- 2. Center Column (English Title - CENTERED) -->
+            <div class="flex flex-col justify-center items-center text-center"> 
+                <!-- Main English Title (large gradient) -->
+                <span class="text-3xl md:text-4xl font-extrabold gradient-text leading-tight">Self-Monitoring</span>
+                <!-- Subtitle (smaller gray text) -->
+                <span class="text-sm md:text-base font-semibold text-gray-500 mt-[-4px]">Home Blood Pressure</span>
             </div>
             
-            <!-- 2. Right: QR Code (original size) -->
-            <div class="flex flex-col items-center justify-center text-right self-end">
+            <!-- 3. Right Column (QR Code - ALIGNED RIGHT) -->
+            <div class="flex flex-col items-end justify-center self-center">
                 <img src="https://raw.githubusercontent.com/nong011/medphayao/e2a3baf7e36eb6eae2b22104db589f9af856728b/L1080x1920.jpg" 
                      alt="LINE QR Code for Updates" 
                      class="h-16 w-16 md:h-20 md:w-20 border border-gray-200 p-0.5 shadow-md object-cover">
