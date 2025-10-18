@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard ความดันโลหิตรายวัน</title>
+    <!-- Tailwind CSS CDN --><script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN for visualization --><script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+    <!-- Chart.js Annotation Plugin (Needed for Reference Lines) --><script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.4.0/dist/chartjs-plugin-annotation.min.js"></script>
+    <!-- Chart.js Zoom Plugin --><script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@1.2.1/dist/chartjs-plugin-zoom.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+Thai:wght@400;700&display=swap');
+        body {
+            font-family: 'Noto Sans Thai', 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        /* Custom CSS for gradient text */
+        .gradient-text {
+            /* Blue to Green gradient matching the original style */
+            background-image: linear-gradient(to right, #3B82F6, #10B981); 
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-fill-color: transparent;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 min-h-screen flex flex-col items-center">
+
+    <div id="dashboard-card" class="bg-white rounded-xl shadow-2xl p-6 md:p-10 w-full max-w-4xl">
+        
+        <!-- NEW HEADER: Logo, English Title, and QR Code -->
+        <div class="flex justify-between items-center mb-6 border-b pb-4 border-gray-100">
+            <!-- 1. Left: Logo and English Title -->
+            <div class="flex items-center gap-3">
+                <!-- LOGO: Increased size 3x -->
+                <img src="https://raw.githubusercontent.com/nong011/medphayao/e2a3baf7e36eb6eae2b22104db589f9af856728b/Gemini_Generated_Image_v2679tv2679tv267%20-%20Edited.png" 
+                     alt="BP Monitoring Logo" 
+                     class="h-48 w-48 md:h-60 md:w-60 rounded-full shadow-lg object-cover">
+                <div class="flex flex-col justify-center">
+                    <!-- Main English Title (large gradient) -->
+                    <span class="text-3xl md:text-4xl font-extrabold gradient-text leading-tight">Self-Monitoring</span>
+                    <!-- Subtitle (smaller gray text) -->
+                    <span class="text-sm md:text-base font-semibold text-gray-500 mt-[-4px]">Home Blood Pressure</span>
+                </div>
+            </div>
+            
+            <!-- 2. Right: QR Code (original size) -->
+            <div class="flex flex-col items-center justify-center text-right self-end">
+                <img src="https://raw.githubusercontent.com/nong011/medphayao/e2a3baf7e36eb6eae2b22104db589f9af856728b/L1080x1920.jpg" 
+                     alt="LINE QR Code for Updates" 
+                     class="h-16 w-16 md:h-20 md:w-20 border border-gray-200 p-0.5 shadow-md object-cover">
+                <p class="text-xs text-gray-500 mt-1 whitespace-nowrap">Add Line for updates</p>
+            </div>
+        </div>
+
+        <!-- Thai Dashboard Title (Centered below the main header block) -->
+        <h1 class="text-3xl font-bold text-gray-800 mb-2 text-center">
+            แดชบอร์ดความดันโลหิตรายวัน
+        </h1>
+        <p class="text-gray-500 mb-2 text-center">แสดงค่าความดันโลหิตและชีพจรรายครั้งตามวันเวลาที่วัด พร้อมเส้นอ้างอิงค่าปกติ</p>
+        
+        <!-- Instruction -->
+        <p class="text-sm font-bold text-red-500 mb-4 text-center">
+            **วิธีการซูม/เลื่อน:** หมุนล้อเลื่อนเมาส์เพื่อซูมเข้า/ออก &nbsp;|&nbsp; **กด Shift ค้างไว้แล้วลาก** เพื่อซูมเฉพาะพื้นที่ที่เลือก
+        </p>
+        
+        <!-- Filter/Action Bar -->
+        <div class="flex flex-col sm:flex-row justify-center items-center gap-4 mb-4 p-4 bg-gray-50 rounded-lg shadow-inner">
+            <label for="userIdInput" class="font-semibold text-gray-700 whitespace-nowrap">กรอก ID ผู้ใช้:</label>
+            <input type="text" id="userIdInput" placeholder="พิมพ์ ID ผู้ใช้ทั้งหมด หรือ ID เดียว" class="w-full sm:w-auto p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 shadow-sm disabled:bg-gray-200" disabled>
+            
+            <button id="applyFilter" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-200 disabled:opacity-50">
+                กรองข้อมูล
+            </button>
+            <button id="resetFilter" class="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-200 disabled:opacity-50">
+                แสดงทั้งหมด
+            </button>
+            <button id="resetZoom" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-200 disabled:opacity-50">
+                รีเซ็ตการซูม
+            </button>
+        </div>
+
+        <!-- Filter Status Display (UX Improvement) -->
+        <p id="currentFilterStatus" class="text-xl font-bold text-purple-700 mt-4 mb-4 text-center hidden p-2 bg-purple-50 rounded-lg shadow-inner border border-purple-200">
+            กำลังแสดงข้อมูลสำหรับ ID: <span id="displayingUserId" class="font-extrabold text-purple-900"></span>
+        </p>
+
+        <div id="loading" class="text-center p-8 text-blue-600 font-medium">
+            กำลังดึงและประมวลผลข้อมูลจาก Google Sheets...
+        </div>
+
+        <div id="error-message" class="hidden bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-lg" role="alert">
+            <p class="font-bold">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>
+            <p id="error-detail">โปรดตรวจสอบว่า Sheet ID และ Sheet Name ถูกต้อง และชีตได้ถูกเผยแพร่เป็น CSV (Publish to the web) แล้ว</p>
+        </div>
+
+        <div id="chart-container" class="relative hidden">
+            <canvas id="bloodPressureChart"></canvas>
+        </div>
+        
+        <!-- UPDATED: Copyright Footer with mailto link -->
+        <div id="summary" class="mt-8 pt-4 border-t border-gray-200 text-center text-sm text-gray-500">
+             © 2025 Designed by 
+             <a href="mailto:krairat.ko@gmail.com" class="text-blue-600 hover:text-blue-800 font-semibold">
+                Krairat Komdee, MD.
+             </a>
+        </div>
+        
+    </div>
+
+    <script>
+        // กำหนดค่าคงที่สำหรับ Google Sheet
+        const SHEET_ID = '1caHhz7tKdwnoEu51wAhG8sIqaUpOQBr1ku_jQAqeVzw';
+        const SHEET_NAME = 'Sheet'; // ต้องตรงกับชื่อ Sheet ใน Google Sheets
+        const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${SHEET_NAME}`;
+
+        // การอ้างอิงถึง DOM Elements
+        const loadingElement = document.getElementById('loading');
+        const errorElement = document.getElementById('error-message');
+        const errorDetailElement = document.getElementById('error-detail');
+        const chartContainer = document.getElementById('chart-container');
+        const resetButton = document.getElementById('resetZoom');
+        const userIdInput = document.getElementById('userIdInput');
+        const applyFilterButton = document.getElementById('applyFilter');
+        const resetFilterButton = document.getElementById('resetFilter');
+        // NEW: Filter Status Elements
+        const currentFilterStatusElement = document.getElementById('currentFilterStatus');
+        const displayingUserIdElement = document.getElementById('displayingUserId');
+
+        let bloodPressureChart = null;
+        let allRawData = []; // Store all raw data globally
+        let currentFilter = 'all';
+
+        /**
+         * แปลงข้อมูล CSV เป็น Array ของ Objects และดึง ID ผู้ใช้
+         */
+        function parseCSV(csvText) {
+            const lines = csvText.trim().split('\n');
+            if (lines.length < 2) return { data: [], userIds: [] };
+
+            const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, '').toLowerCase());
+            let dateIndex = -1, timeIndex = -1, idIndex = -1, sysIndex = -1, diaIndex = -1, pulseIndex = -1;
+
+            // ค้นหาคอลัมน์: B=Date, C=Time, D=ID, F=SBP, G=DBP, H=Pulse
+            headers.forEach((h, i) => {
+                if (h.includes('date') || h.includes('วัน')) dateIndex = i; // Column B
+                if (h.includes('time') || h.includes('เวลา')) timeIndex = i; // Column C
+                // ค้นหา ID โดยหลีกเลี่ยง 'lineuser' เพื่อให้ตรงกับคอลัมน์ D: ID
+                if ((h.includes('id') && !h.includes('lineuser')) || h.includes('ผู้ใช้id')) idIndex = i; // Column D: User ID
+                if (h.includes('sbp') || h.includes('sys') || h.includes('ความดันตัวบน')) sysIndex = i; // Column F
+                if (h.includes('dbp') || h.includes('dia') || h.includes('ความดันตัวล่าง')) diaIndex = i; // Column G
+                if (h.includes('pulse') || h.includes('ชีพจร')) pulseIndex = i; // Column H
+            });
+
+            // ตรวจสอบคอลัมน์ที่จำเป็นทั้งหมด
+            if (dateIndex === -1 || timeIndex === -1 || idIndex === -1 || sysIndex === -1 || diaIndex === -1 || pulseIndex === -1) {
+                console.error("ไม่พบคอลัมน์ที่จำเป็น: Date, Time, ID, SBP (หรือ SYS), DBP (หรือ DIA), Pulse");
+                throw new Error("CSV_COLUMNS_MISSING");
+            }
+
+            const data = [];
+            const userIds = new Set();
+            
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+                
+                if (values.length > idIndex && values.length > pulseIndex) {
+                    const dateStr = values[dateIndex];
+                    const timeStr = values[timeIndex];
+                    const userId = values[idIndex];
+                    const sys = parseInt(values[sysIndex], 10);
+                    const dia = parseInt(values[diaIndex], 10);
+                    const pulse = parseInt(values[pulseIndex], 10); 
+                    
+                    // การต่อสตริงวันที่และเวลา (อาจมีปัญหาในบางรูปแบบ ให้ใช้รูปแบบ ISO YYYY-MM-DD HH:mm:ss ใน Sheet เพื่อความชัวร์)
+                    const timestampStr = `${dateStr} ${timeStr}`;
+
+                    if (!isNaN(sys) && sys > 30 && !isNaN(dia) && dia > 30 && !isNaN(pulse) && pulse > 20 && dateStr && timeStr && userId) {
+                        data.push({
+                            timestamp: new Date(timestampStr), 
+                            label: timestampStr, 
+                            userId: userId,
+                            sys: sys,
+                            dia: dia,
+                            pulse: pulse 
+                        });
+                        userIds.add(userId);
+                    }
+                }
+            }
+            return { data, userIds: Array.from(userIds).sort() };
+        }
+
+        /**
+         * เตรียมข้อมูลสำหรับกราฟเส้น (เรียงลำดับและแยก Label/Data)
+         */
+        function prepareLineChartData(rawData) {
+            // เรียงตามเวลาล่าสุดก่อน
+            rawData.sort((a, b) => a.timestamp - b.timestamp);
+
+            const labels = rawData.map(d => d.label);
+            const sysData = rawData.map(d => d.sys);
+            const diaData = rawData.map(d => d.dia);
+            const pulseData = rawData.map(d => d.pulse);
+
+            return { labels, sysData, diaData, pulseData };
+        }
+
+        /**
+         * แสดงผลลัพธ์ในรูปแบบกราฟเส้นด้วย Chart.js
+         */
+        function renderChart(chartData) {
+            const ctx = document.getElementById('bloodPressureChart').getContext('2d');
+            
+            if (bloodPressureChart) {
+                bloodPressureChart.destroy();
+            }
+
+            bloodPressureChart = new Chart(ctx, {
+                type: 'line', 
+                data: {
+                    labels: chartData.labels, 
+                    datasets: [
+                        {
+                            label: 'ความดันตัวบน (SBP)',
+                            data: chartData.sysData,
+                            borderColor: 'rgba(59, 130, 246, 1)', 
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            fill: false,
+                            tension: 0.3,
+                            pointBackgroundColor: 'rgba(37, 99, 235, 1)',
+                            pointRadius: 4,
+                            yAxisID: 'y' 
+                        },
+                        {
+                            label: 'ความดันตัวล่าง (DBP)',
+                            data: chartData.diaData,
+                            borderColor: 'rgba(255, 193, 7, 1)', 
+                            backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                            fill: false,
+                            tension: 0.3,
+                            pointBackgroundColor: 'rgba(255, 160, 0, 1)',
+                            pointRadius: 4,
+                            yAxisID: 'y' 
+                        },
+                        {
+                            label: 'ชีพจร (Pulse)',
+                            data: chartData.pulseData,
+                            borderColor: 'rgba(239, 68, 68, 1)', 
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            fill: false,
+                            tension: 0.3,
+                            pointBackgroundColor: 'rgba(185, 28, 28, 1)', 
+                            pointRadius: 4,
+                            yAxisID: 'y-axis-pulse' 
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'แนวโน้มความดันโลหิตและชีพจรตามวันเวลาที่วัด',
+                            font: { size: 16 }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        let unit = context.dataset.yAxisID === 'y-axis-pulse' ? ' ครั้ง/นาที' : ' mmHg';
+                                        label += context.parsed.y + unit;
+                                    }
+                                    return label;
+                                },
+                                title: function(context) {
+                                    // Show current filter ID in tooltip title if not 'all'
+                                    const currentID = currentFilter === 'all' ? '' : ` (ID: ${currentFilter})`;
+                                    return context[0].label + currentID; 
+                                }
+                            }
+                        },
+                        legend: {
+                            labels: {
+                                font: {
+                                    family: 'Noto Sans Thai, Inter, sans-serif'
+                                }
+                            }
+                        },
+                        annotation: {
+                            annotations: {
+                                sbpRef: {
+                                    type: 'line', yMin: 120, yMax: 120,
+                                    borderColor: 'rgba(124, 58, 237, 0.7)', 
+                                    borderWidth: 2, borderDash: [6, 6],
+                                    label: {
+                                        content: 'SBP 120 mmHg (เกณฑ์ปกติ)',
+                                        display: true, position: 'end',
+                                        backgroundColor: 'rgba(124, 58, 237, 0.9)', 
+                                        font: { family: 'Noto Sans Thai, Inter, sans-serif', size: 10, weight: 'bold' }
+                                    }
+                                },
+                                dbpRef: {
+                                    type: 'line', yMin: 80, yMax: 80,
+                                    borderColor: 'rgba(5, 150, 105, 0.7)', 
+                                    borderWidth: 2, borderDash: [6, 6],
+                                    label: {
+                                        content: 'DBP 80 mmHg (เกณฑ์ปกติ)',
+                                        display: true, position: 'end',
+                                        backgroundColor: 'rgba(5, 150, 105, 0.9)',
+                                        font: { family: 'Noto Sans Thai, Inter, sans-serif', size: 10, weight: 'bold' }
+                                    }
+                                }
+                            }
+                        },
+                        // CONFIGURATION FOR ZOOM
+                        zoom: {
+                            pan: {
+                                enabled: false, // ปิดใช้งาน Pan
+                                mode: 'x', 
+                            }, 
+                            zoom: {
+                                wheel: {
+                                    enabled: true, // เปิดใช้งาน Zoom ด้วย Mouse Wheel
+                                },
+                                pinch: {
+                                    enabled: true // เปิดใช้งาน Zoom ด้วย Pinch
+                                },
+                                mode: 'x', // ซูมได้เฉพาะแกน X
+                                drag: { 
+                                    enabled: true, // เปิดใช้งาน Zoom โดยการลากเมาส์เป็นกรอบ
+                                    modifierKey: 'shift', // ใช้ Shift + Drag เพื่อซูม
+                                }
+                            },
+                            onZoom: ({chart}) => {
+                                resetButton.disabled = chart.options.plugins.zoom.scaleAxes.x.min === undefined;
+                            },
+                            onPan: ({chart}) => {
+                                resetButton.disabled = chart.options.plugins.zoom.scaleAxes.x.min === undefined;
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            id: 'y', 
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: 'ความดันโลหิต (mmHg)',
+                                font: { family: 'Noto Sans Thai, Inter, sans-serif' }
+                            },
+                            position: 'left',
+                            min: 60, 
+                            max: 200, 
+                        },
+                        'y-axis-pulse': { 
+                            id: 'y-axis-pulse',
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: 'ชีพจร (ครั้ง/นาที)',
+                                font: { family: 'Noto Sans Thai, Inter, sans-serif' }
+                            },
+                            position: 'right',
+                            grid: {
+                                drawOnChartArea: false, 
+                            },
+                            min: 40, 
+                            max: 180 
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'วันเวลาที่วัด',
+                                font: { family: 'Noto Sans Thai, Inter, sans-serif' }
+                            },
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        }
+                    }
+                }
+            });
+            chartContainer.style.height = '400px'; 
+            resetButton.disabled = true;
+        }
+
+        // --- FILTER FUNCTIONS ---
+
+        // Event handler for Apply Filter button
+        applyFilterButton.addEventListener('click', () => {
+            const inputId = userIdInput.value.trim();
+            if (inputId === '') {
+                // If input is empty, reset to show all data
+                applyNewFilter('all');
+            } else {
+                applyNewFilter(inputId);
+            }
+        });
+
+        // Event handler for Reset Filter button (show all)
+        resetFilterButton.addEventListener('click', () => {
+            userIdInput.value = ''; // Clear input field
+            applyNewFilter('all');
+        });
+
+        // Function to apply a new filter and re-render the chart
+        function applyNewFilter(newId) {
+            currentFilter = newId;
+            const filteredData = filterDataByUserId(newId);
+            const chartData = prepareLineChartData(filteredData);
+            renderChart(chartData);
+
+            // UPDATED: Show filter status (UX Improvement)
+            if (newId !== 'all') {
+                displayingUserIdElement.textContent = newId;
+                currentFilterStatusElement.classList.remove('hidden');
+            } else {
+                currentFilterStatusElement.classList.add('hidden');
+            }
+        }
+
+        // Function to filter data
+        function filterDataByUserId(userId) {
+            if (userId === 'all') {
+                return allRawData;
+            }
+            // Check if ID matches exactly (case-sensitive)
+            return allRawData.filter(d => d.userId === userId); 
+        }
+
+        // --- END FILTER FUNCTIONS ---
+
+        /**
+         * ฟังก์ชันหลักในการดึงและแสดงข้อมูล
+         */
+        async function loadDashboard() {
+            loadingElement.classList.remove('hidden');
+            errorElement.classList.add('hidden');
+            chartContainer.classList.add('hidden');
+            userIdInput.disabled = true; // Disable input until data is ready
+            applyFilterButton.disabled = true;
+            resetFilterButton.disabled = true;
+            currentFilterStatusElement.classList.add('hidden'); // Hide filter status on load
+
+            try {
+                const response = await fetch(CSV_URL);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const csvText = await response.text();
+                
+                if (csvText.startsWith('<!DOCTYPE html') || csvText.startsWith('<html')) {
+                    throw new Error("Server returned HTML, not CSV. Check sheet publishing settings.");
+                }
+
+                const { data: rawData, userIds } = parseCSV(csvText); // Destructure data and userIds
+                allRawData = rawData; // Store the original data
+
+                if (rawData.length === 0) {
+                    // Use mock data fallback if sheet data is empty
+                    console.warn("ข้อมูลจริงที่ดึงมาว่างเปล่าหรือมีปัญหาการอ่านคอลัมน์ ใช้ข้อมูลจำลองแทน");
+                    const mockData = [
+                        { userId: '3560100203442', label: "2025-10-14 07:30", timestamp: new Date("2025-10-14 07:30"), sys: 125, dia: 80, pulse: 72 },
+                        { userId: '15478010992', label: "2025-10-14 14:00", timestamp: new Date("2025-10-14 14:00"), sys: 130, dia: 85, pulse: 88 },
+                        { userId: '3560100203442', label: "2025-10-15 08:15", timestamp: new Date("2025-10-15 08:15"), sys: 122, dia: 78, pulse: 65 },
+                        { userId: '15678010503', label: "2025-10-15 21:00", timestamp: new Date("2025-10-15 21:00"), sys: 118, dia: 75, pulse: 75 },
+                        { userId: '15478010992', label: "2025-10-16 06:00", timestamp: new Date("2025-10-16 06:00"), sys: 120, dia: 76, pulse: 80 }
+                    ];
+                    allRawData = mockData;
+                    errorElement.classList.remove('hidden'); 
+                    errorDetailElement.innerHTML = "การดึงข้อมูลสำเร็จ แต่ข้อมูลใน Sheet ว่างเปล่าหรืออ่านไม่ได้ จึงใช้ **ข้อมูลจำลอง** ในการแสดงผลแทน";
+                } 
+                
+                // Initial render (show all)
+                const chartData = prepareLineChartData(allRawData);
+                renderChart(chartData);
+
+                loadingElement.classList.add('hidden');
+                chartContainer.classList.remove('hidden');
+                userIdInput.disabled = false; // Enable input
+                applyFilterButton.disabled = false;
+                resetFilterButton.disabled = false;
+
+            } catch (error) {
+                console.error("Dashboard Load Error:", error);
+                loadingElement.classList.add('hidden');
+                errorElement.classList.remove('hidden');
+                
+                if (error.message === "CSV_COLUMNS_MISSING") {
+                    errorDetailElement.textContent = "ไม่พบข้อมูลคอลัมน์ 'Date' (B), 'Time' (C), 'ID' (D), 'SBP' (F), 'DBP' (G), และ 'Pulse' (H) ใน Sheet โปรดตรวจสอบ Header Row.";
+                } else {
+                    errorDetailElement.textContent = `ข้อผิดพลาด: ${error.message}. โปรดตรวจสอบว่าชีตถูกเผยแพร่เป็นเว็บเพจแล้ว`;
+                }
+
+                // Fallback to mock data if load fails completely
+                const mockData = [
+                    { userId: 'User1', label: "2025-10-14 07:30", timestamp: new Date("2025-10-14 07:30"), sys: 125, dia: 80, pulse: 72 },
+                    { userId: 'User2', label: "2025-10-15 14:00", timestamp: new Date("2025-10-15 14:00"), sys: 130, dia: 85, pulse: 88 },
+                    { userId: 'User3', label: "2025-10-16 21:00", timestamp: new Date("2025-10-16 21:00"), sys: 118, dia: 75, pulse: 65 },
+                ];
+                allRawData = mockData;
+                const chartData = prepareLineChartData(allRawData);
+                renderChart(chartData);
+                chartContainer.classList.remove('hidden');
+            }
+        }
+
+        // Event listener for Reset Zoom Button
+        resetButton.addEventListener('click', () => {
+            if (bloodPressureChart) {
+                bloodPressureChart.resetZoom();
+            }
+        });
+
+        // เริ่มโหลดแดชบอร์ดเมื่อหน้าเว็บโหลดเสร็จ
+        window.onload = loadDashboard;
+    </script>
+</body>
+</html>
