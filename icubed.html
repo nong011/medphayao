@@ -71,6 +71,14 @@
             margin-bottom: 1.5rem; 
             text-align: center;
         }
+        
+        /* NEW: สำหรับจำกัดความกว้างของโลโก้ให้เท่ากับส่วนข้อมูลด้านล่าง */
+        .logo-wrapper {
+            max-width: 1280px; /* max-w-6xl */
+            margin-left: auto;
+            margin-right: auto;
+        }
+
 
         /* Summary Card Styling */
         .summary-card {
@@ -104,12 +112,15 @@
 <body class="p-3 md:p-6"> <!-- ลด Padding โดยรวมของหน้า -->
 
     <!-- Logo Header --><header class="text-center mb-6">
-        <div class="logo-container">
-            <img 
-                src="https://phayaohospital.moph.go.th/assets/images/logonew.png" 
-                alt="Logo โรงพยาบาล" 
-                class="mx-auto w-full h-auto object-contain mb-2 logo-img"
-                onerror="this.onerror=null; this.style.display='none';">
+        <!-- NEW: ตัว Wrapper ที่จำกัดความกว้างของ Logo -->
+        <div class="logo-wrapper max-w-6xl">
+            <div class="logo-container">
+                <img 
+                    src="https://phayaohospital.moph.go.th/assets/images/logonew.png" 
+                    alt="Logo โรงพยาบาล" 
+                    class="mx-auto w-full h-auto object-contain mb-2 logo-img"
+                    onerror="this.onerror=null; this.style.display='none';">
+            </div>
         </div>
     </header>
 
