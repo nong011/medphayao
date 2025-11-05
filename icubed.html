@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard ข้อมูล ICU รวม</title>
+    <!-- นำเข้า Tailwind CSS สำหรับการจัดสไตล์และทำ Responsive --><script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* กำหนดฟอนต์หลักและใช้ Inter ตามมาตรฐาน */
+        body {
+            font-family: 'Inter', Arial, sans-serif;
+            margin: 0;
+            /* แก้ไข: เปลี่ยนสีพื้นหลังเป็นสีขาว */
+            background-color: #ffffff; 
+        }
+        /* กำหนด Grid Layout สำหรับการ์ดผู้ป่วย */
+        .patient-grid {
+            display: grid;
+            /* MOBILE (Default): บังคับให้แสดง 2 คอลัมน์บนมือถือเท่านั้น */
+            grid-template-columns: repeat(2, minmax(0, 1fr)); 
+            gap: 0.75rem; /* ลด gap ให้แคบลงอีก */
+        }
+        /* DESKTOP/TABLET: ปรับให้แสดง 4 คอลัมน์ เมื่อหน้าจอกว้างตั้งแต่ 640px ขึ้นไป */
+        @media (min-width: 640px) {
+            .patient-grid {
+                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            }
+        }
+
+        .icon-img {
+            width: 28px; /* ลดขนาดไอคอนสถานะ */
+            height: 28px; /* ลดขนาดไอคอนสถานะ */
+            object-fit: contain;
+            font-size: 28px; 
+            line-height: 1;
+        }
+        .gender-icon {
+            width: 26px; /* ลดขนาดไอคอนเพศ */
+            height: 26px; /* ลดขนาดไอคอนเพศ */
+            margin-left: 6px; /* ลดระยะห่าง */
+            display: inline-block;
+            vertical-align: middle;
+            object-fit: contain;
+        }
+
+        /* UPDATED: Responsive Font Size สำหรับ Title */
+        @media (max-width: 640px) { /* สำหรับมือถือ */
+            .main-title {
+                font-size: 1.5rem; /* ลดขนาดเหลือประมาณ 24px */
+            }
+            .patient-card-title {
+                font-size: 1.25rem; /* ลดขนาดหัวข้อการ์ด */
+            }
+            .logo-img {
+                max-width: 90%;
+            }
+        }
+        @media (min-width: 641px) { /* สำหรับแท็บเล็ตและเดสก์ท็อป */
+            .main-title {
+                font-size: 2.25rem; /* ลดขนาดเหลือประมาณ 36px */
+            }
+            .patient-card-title {
+                font-size: 1.5rem; /* ลดขนาดหัวข้อการ์ด */
+            }
+        }
+
+        /* Logo Container */
+        .logo-container {
+            display: flex;
+            justify-content: center; /* จัดให้อยู่ตรงกลาง */
+            margin-bottom: 1.5rem; 
+            text-align: center;
+        }
+
+        /* Summary Card Styling */
+        .summary-card {
+            display: grid;
+            /* ปรับให้แสดง 2 คอลัมน์บนมือถือ, 4 คอลัมน์บนเดสก์ท็อป */
+            grid-template-columns: repeat(2, minmax(0, 1fr)); 
+            gap: 0.5rem;
+            background-color: #f7f9fc;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            border: 1px solid #e2e8f0;
+        }
+        @media (min-width: 641px) {
+            .summary-card {
+                 grid-template-columns: repeat(4, minmax(0, 1fr)); 
+            }
+        }
+        .summary-item {
+            text-align: center;
+            padding: 0.5rem 0.25rem;
+            border-radius: 0.375rem;
+            line-height: 1.2;
+            font-size: 0.875rem; /* text-sm */
+        }
+        .summary-value {
+            font-size: 1.125rem; /* text-lg */
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body class="p-3 md:p-6"> <!-- ลด Padding โดยรวมของหน้า -->
+
+    <!-- Logo Header --><header class="text-center mb-6">
+        <div class="logo-container">
+            <img 
+                src="https://phayaohospital.moph.go.th/assets/images/logonew.png" 
+                alt="Logo โรงพยาบาล" 
+                class="mx-auto w-full h-auto object-contain mb-2 logo-img"
+                onerror="this.onerror=null; this.style.display='none';">
+        </div>
+    </header>
+
+    <!-- REMOVED: หัวข้อหลักสำหรับ Dashboard รวม (ตามคำขอ) --><div id="loadingStatus" class="text-center mt-8 text-blue-600">
+        <p>กำลังโหลดข้อมูล... โปรดรอสักครู่</p>
+    </div>
+
+    <!-- Container สำหรับ All ICU Units -->
+    <!-- Patient Cards ของแต่ละ ICU Unit จะถูกเพิ่มเข้ามาที่นี่โดย JavaScript -->
+    <div id="dashboardContainer" class="max-w-6xl mx-auto">
+    </div>
+
+    <!-- Footer/Credit --><footer class="mt-12 border-t pt-4 text-center text-gray-500 text-sm max-w-6xl mx-auto">
+        © 2025 Designed by Krairat Komdee, MD.
+    </footer>
+
+    <script>
+        // *** 1. ข้อมูลการตั้งค่าและการเข้าถึง Google Sheets ***
+        const SPREADSHEET_ID = '1kijAFC1_lT2jQdHcnjSRrmFOwXqbgdW0NSUVVAQxMVE';
+        const SHEET_NAMES = ['ICU1', 'ICU2', 'ICU3', 'ICU4'];
+        
+        // ** URL รูปภาพจาก GitHub (คงไว้ตามคำขอ) **
+        const URL_HFNC = 'https://raw.githubusercontent.com/nong011/medphayao/17721c1534b3d86c2f1309533c92282ecf9b2d1f/HFNC.png';
+        const URL_VENTILATOR = 'https://raw.githubusercontent.com/nong011/medphayao/main/ventilator.png';
+        const URL_MALE = 'https://raw.githubusercontent.com/nong011/medphayao/bd98599455c7978a40936b5b6f8946b2c9994182/S__148930609.jpg';
+        const URL_FEMALE = 'https://raw.githubusercontent.com/nong011/medphayao/main/female.png'; 
+        // UPDATED: ใช้ URL ใหม่สำหรับไอคอนเตียง
+        const URL_BED = 'https://raw.githubusercontent.com/nong011/medphayao/059a5355f2cf8bae40b608dbb182708b1d6870c8/bed.png'; 
+        
+        // กำหนดความจุรวมของแต่ละ ICU Unit (ใช้ในการคำนวณเตียงว่าง)
+        const totalCapacity = 10; 
+
+        /**
+         * สร้าง Summary Card HTML
+         * @param {object} stats สถิติของ ICU Unit (totalPatients, ventilatorCount, hfncCount)
+         * @returns {string} HTML string ของ Summary Card
+         */
+        function createSummaryCard(stats) {
+            const occupied = stats.totalPatients;
+            const empty = stats.totalCapacity - occupied;
+            const ventilator = stats.ventilatorCount;
+            const hfnc = stats.hfncCount;
+
+            // ใช้ NumberFormat เพื่อจัดการตัวเลขให้ปลอดภัย
+            const formatNumber = (num) => isNaN(num) ? '?' : new Intl.NumberFormat('th-TH').format(num);
+
+            return `
+                <div class="summary-card mb-4 mt-2">
+                    <!-- สรุปผู้ป่วยรวม -->
+                    <div class="summary-item bg-blue-100 text-blue-800">
+                        <div class="summary-value">${formatNumber(occupied)}</div>
+                        <div>ผู้ป่วยรวม</div>
+                    </div>
+                    <!-- สรุปเตียงว่าง -->
+                    <div class="summary-item bg-green-100 text-green-800">
+                        <div class="summary-value">${formatNumber(empty)}</div>
+                        <div>เตียงว่าง</div>
+                    </div>
+                    <!-- สรุป Ventilator -->
+                    <div class="summary-item bg-red-100 text-red-800">
+                        <div class="summary-value">${formatNumber(ventilator)}</div>
+                        <div>Ventilator</div>
+                    </div>
+                    <!-- สรุป HFNC -->
+                    <div class="summary-item bg-amber-100 text-amber-800">
+                        <div class="summary-value">${formatNumber(hfnc)}</div>
+                        <div>HFNC</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        /**
+         * สร้าง Patient Card HTML
+         * @param {object} data ข้อมูลผู้ป่วย
+         * @returns {string} HTML string ของ Patient Card
+         */
+        function createPatientCard(data) {
+            // --- 1. กำหนดสถานะ Oxygen และสี ---
+            const oxygenStatus = data.Oxygen ? data.Oxygen.toUpperCase().trim() : '';
+            let borderColor = 'border-gray-300'; // Default gray
+            let bgColor = 'bg-white';
+            
+            // ใช้ URL รูปภาพจาก GitHub, พร้อม onerror fallback
+            let statusIconElement = `<img src="${URL_BED}" class="icon-img" alt="Bed Icon" onerror="this.onerror=null; this.outerHTML='<span class=\\'text-xl\\'>🛏️</span>';">`; 
+
+            if (oxygenStatus.includes('VENTILA')) {
+                borderColor = 'border-red-500 ring-4 ring-red-200'; // แดงสำหรับผู้ป่วยที่ใส่เครื่องช่วยหายใจ
+                bgColor = 'bg-red-50';
+                statusIconElement = `<img src="${URL_VENTILATOR}" class="icon-img" alt="Ventilator Icon" onerror="this.onerror=null; this.outerHTML='<span class=\\'text-xl\\'>🚨</span>';">`;
+            } else if (oxygenStatus.includes('HIGH')) {
+                borderColor = 'border-amber-500 ring-4 ring-amber-200'; // เหลือง/ส้มสำหรับ High Flow
+                bgColor = 'bg-amber-50';
+                statusIconElement = `<img src="${URL_HFNC}" class="icon-img" alt="HFNC Icon" onerror="this.onerror=null; this.outerHTML='<span class=\\'text-xl\\'>⚠️</span>';">`;
+            } 
+            
+            // --- 2. กำหนดไอคอนเพศ ---
+            let genderIconElement = '';
+            if (data.Sex) {
+                const sex = data.Sex.toUpperCase().trim();
+                if (sex === 'F') {
+                    genderIconElement = `<img src="${URL_FEMALE}" class="gender-icon" alt="Female Icon" onerror="this.onerror=null; this.outerHTML='<span class=\\'gender-icon\\'>🚺</span>';">`;
+                } else if (sex === 'M') {
+                    genderIconElement = `<img src="${URL_MALE}" class="gender-icon" alt="Male Icon" onerror="this.onerror=null; this.outerHTML='<span class=\\'gender-icon\\'>🚹</span>';">`;
+                }
+            }
+
+
+            return `
+                <div class="patient-card ${bgColor} border-l-8 ${borderColor} p-3 rounded-xl shadow-md transition transform hover:scale-[1.02] hover:shadow-lg cursor-pointer">
+                    <div class="flex justify-between items-center mb-2"> 
+                        <h3 class="patient-card-title font-extrabold text-gray-900 leading-none flex items-center">
+                            ${data.Bed || '-'} ${genderIconElement} 
+                        </h3>
+                        <div class="flex-shrink-0 w-7 h-7 flex items-center justify-center">${statusIconElement}</div> 
+                    </div>
+                    <div class="space-y-1 text-xs"> 
+                        <div class="flex justify-between">
+                            <span class="font-semibold text-gray-600">HN:</span>
+                            <span class="font-medium text-gray-800">${data.HN || '-'}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="font-semibold text-gray-600">AN:</span>
+                            <span class="font-medium text-gray-800">${data.AN || '-'}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        /**
+         * ดึงและแปลงข้อมูลสำหรับ Sheet ที่กำหนด
+         * @param {string} sheetName ชื่อ Sheet ที่จะดึงข้อมูล
+         * @returns {Promise<{sheetName: string, data: object[], stats: object}>} ข้อมูลผู้ป่วยและสถิติ
+         */
+        async function fetchSheetData(sheetName) {
+            const GOOGLE_SHEET_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=${sheetName}`;
+            const maxRetries = 3;
+            let responseText;
+
+            for (let attempt = 0; attempt < maxRetries; attempt++) {
+                const response = await fetch(GOOGLE_SHEET_URL);
+                if (response.ok) {
+                    responseText = await response.text();
+                    break;
+                }
+
+                if (attempt < maxRetries - 1) {
+                    const delay = Math.pow(2, attempt) * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                } else {
+                    throw new Error(`HTTP error! status: ${response.status} for sheet ${sheetName}`);
+                }
+            }
+            
+            // --- 2. การแปลงข้อมูล JSONP เป็น JSON Object ---
+            const jsonTextStart = responseText.indexOf('(') + 1;
+            const jsonTextEnd = responseText.lastIndexOf(')');
+            
+            if (jsonTextStart === -1 || jsonTextEnd === -1 || jsonTextEnd <= jsonTextStart) {
+                throw new Error(`Invalid JSONP format for sheet ${sheetName}`);
+            }
+            
+            const jsonText = responseText.substring(jsonTextStart, jsonTextEnd);
+            const data = JSON.parse(jsonText);
+            
+            const table = data.table;
+            if (!table || !table.rows || table.rows.length === 0 || !table.cols || table.cols.length === 0) {
+                 // Return empty data if sheet is valid but has no patient rows
+                 return { sheetName, data: [], stats: { totalPatients: 0, ventilatorCount: 0, hfncCount: 0, totalCapacity: totalCapacity }, error: null }; 
+            }
+
+            const headers = table.cols.map(col => col.label.trim());
+            
+            const headerMap = {};
+            const requiredHeaders = ['Bed', 'HN', 'AN', 'Sex', 'Oxygen']; 
+            requiredHeaders.forEach(key => {
+                headerMap[key] = headers.findIndex(h => h.toUpperCase() === key.toUpperCase());
+            });
+
+            if (headerMap.Bed === -1) {
+                throw new Error(`Column 'Bed' not found in sheet ${sheetName}`);
+            }
+
+            // สร้าง Patient Data Array
+            let ventilatorCount = 0;
+            let hfncCount = 0;
+
+            const patientData = table.rows.map(row => {
+                if (!row.c) return null; 
+
+                const patient = {};
+                const getValue = (index) => {
+                    const cell = row.c[index];
+                    if (cell && cell.v !== undefined) {
+                        return (cell.f !== undefined) ? String(cell.f).trim() : String(cell.v).trim();
+                    }
+                    return null;
+                };
+
+                patient.Bed = getValue(headerMap.Bed);
+                patient.HN = getValue(headerMap.HN);
+                patient.AN = getValue(headerMap.AN);
+                patient.Sex = getValue(headerMap.Sex);
+                patient.Oxygen = getValue(headerMap.Oxygen);
+                
+                // นับสถานะสำหรับ Summary Card
+                if (patient.Oxygen) {
+                    const status = patient.Oxygen.toUpperCase();
+                    if (status.includes('VENTILA')) {
+                        ventilatorCount++;
+                    } else if (status.includes('HIGH')) {
+                        hfncCount++;
+                    }
+                }
+                
+                return patient;
+            }).filter(p => p && p.Bed && p.Bed.trim() !== ''); // กรองแถวที่ว่างเปล่าและแถวที่ไม่มีข้อมูล Bed
+            
+            const stats = {
+                totalPatients: patientData.length,
+                ventilatorCount: ventilatorCount,
+                hfncCount: hfncCount,
+                totalCapacity: totalCapacity // ใช้ค่าที่กำหนดไว้
+            };
+
+            return { sheetName, data: patientData, stats, error: null };
+        }
+
+        // ฟังก์ชันในการดึงข้อมูลและแสดงผลสำหรับทุก ICU
+        async function loadAndDisplayData() {
+            const statusElement = document.getElementById('loadingStatus');
+            const containerElement = document.getElementById('dashboardContainer');
+            statusElement.innerHTML = '<p>กำลังโหลดข้อมูล... โปรดรอสักครู่</p>';
+            containerElement.innerHTML = ''; // ล้างเนื้อหาเก่า
+
+            try {
+                // สร้าง Promise สำหรับการดึงข้อมูลทุก Sheet พร้อมกัน
+                const fetchPromises = SHEET_NAMES.map(sheetName => fetchSheetData(sheetName).catch(error => {
+                    console.error(`Error fetching data for ${sheetName}:`, error);
+                    // คืนค่าเป็นข้อมูลว่างเปล่าสำหรับ Sheet ที่ล้มเหลว
+                    return { sheetName, data: [], stats: { totalPatients: 0, ventilatorCount: 0, hfncCount: 0, totalCapacity: totalCapacity }, error: error.message }; 
+                }));
+                
+                const results = await Promise.all(fetchPromises);
+                
+                
+                results.forEach(result => {
+                    const sheetName = result.sheetName;
+                    const patientData = result.data;
+                    const error = result.error;
+                    const stats = result.stats; // ดึงสถิติ
+                    
+                    // สร้าง Section สำหรับ ICU Unit นี้
+                    const unitSection = document.createElement('div');
+                    unitSection.className = 'mb-8'; // ลด mb-10 เป็น mb-8
+
+                    let contentHtml = '';
+                    
+                    // --- 1. แสดง Summary Card ---
+                    if (!error) {
+                        contentHtml += createSummaryCard(stats);
+                    }
+                    
+                    // --- 2. แสดง Patient Cards หรือ Error Message ---
+                    if (error) {
+                         // แสดงข้อผิดพลาดเฉพาะสำหรับ ICU Unit นี้
+                         contentHtml += `
+                            <div class="p-4 rounded-lg bg-red-50 border border-red-300 text-red-600 mt-4">
+                                <p class="font-bold">⚠️ ไม่สามารถโหลดข้อมูล ${sheetName} ได้</p>
+                                <p class="text-sm">ข้อผิดพลาด: ${error.includes('HTTP error!') ? 'โปรดตรวจสอบสิทธิ์การเข้าถึง (เผยแพร่สู่เว็บ)' : error}</p>
+                            </div>`;
+                    } else if (patientData.length > 0) {
+                        // สร้าง Grid Container ภายใน Section
+                        const cardsHtml = patientData.map(createPatientCard).join('');
+                        contentHtml += `<div class="patient-grid mt-4">${cardsHtml}</div>`;
+                    } else if (!error && stats.totalCapacity > 0) {
+                        // กรณีโหลดสำเร็จแต่ไม่มีผู้ป่วย
+                         contentHtml += `<p class="text-gray-500 mt-4 p-4 rounded-lg bg-gray-50">ไม่พบข้อมูลผู้ป่วยใน ${sheetName} (เตียงว่างทั้งหมด)</p>`;
+                    } else {
+                         contentHtml += `<p class="text-gray-500 mt-4 p-4 rounded-lg bg-gray-50">ไม่พบข้อมูลผู้ป่วยใน ${sheetName}</p>`;
+                    }
+
+                    // เพิ่มหัวข้อและเนื้อหาลงใน Section
+                    unitSection.innerHTML = `
+                        <h2 class="text-2xl font-bold text-blue-700 border-b-2 border-blue-200 pb-1 mb-4">
+                            ${sheetName}
+                        </h2>
+                        ${contentHtml}`;
+                    
+                    containerElement.appendChild(unitSection);
+                });
+
+                // ลบสถานะโหลดเมื่อแสดงผลเสร็จ
+                if (containerElement.innerHTML !== '') {
+                    statusElement.innerHTML = '';
+                } else {
+                    // หากไม่มีข้อมูลเลย (ทุก Sheet ล้มเหลว/ว่างเปล่า)
+                     statusElement.innerHTML = `
+                        <div class="p-4 rounded-lg bg-red-100 border border-red-400 text-red-700 max-w-lg mx-auto">
+                            <p class="font-bold">❌ ไม่พบข้อมูลจาก ICU1, ICU2, ICU3, และ ICU4 เลย</p>
+                            <p class="mt-2 text-sm">โปรดตรวจสอบชื่อ Sheet และยืนยันว่าได้ทำขั้นตอน "เผยแพร่สู่เว็บ" ครบถ้วนแล้ว</p>
+                        </div>
+                    `;
+                }
+
+
+            } catch (error) {
+                // ข้อผิดพลาดที่ไม่คาดคิดในการทำงานของ Promise.all
+                console.error("Critical Orchestration Error:", error.message, error);
+                containerElement.innerHTML = ''; 
+                statusElement.innerHTML = `
+                    <div class="p-4 rounded-lg bg-red-100 border border-red-400 text-red-700 max-w-lg mx-auto">
+                        <p class="font-bold">❌ เกิดข้อผิดพลาดร้ายแรงระหว่างการดึงข้อมูล</p>
+                        <p class="mt-2 text-sm">โปรดดู Console สำหรับรายละเอียด</p>
+                    </div>
+                `;
+            }
+        }
+
+        // เริ่มโหลดข้อมูลเมื่อ DOM โหลดเสร็จ
+        window.onload = loadAndDisplayData;
+        
+    </script>
+
+</body>
+</html>
