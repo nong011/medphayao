@@ -10,8 +10,16 @@
         
         body {
             font-family: 'Sarabun', sans-serif;
-            background-color: #f3f4f6;
+            background-color: #111827; /* สีสำรองกรณีรูปไม่โหลด */
             overflow-x: hidden;
+            
+            /* ใช้รูปภาพจาก URL แทน (เปลี่ยนเป็นชื่อไฟล์ของคุณได้ภายหลัง) */
+            background-image: url('https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=2048&auto=format&fit=crop');
+            
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
         }
 
         .arrow-down {
@@ -34,17 +42,25 @@
             width: 100%;
             max-width: 500px;
             aspect-ratio: 1 / 1;
-            background: white;
+            background: rgba(255, 255, 255, 0.9); /* พื้นหลังขาวโปร่งแสง */
             border-radius: 50%;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.5); /* เพิ่มเงาฟุ้งๆ */
             margin: 0 auto;
+        }
+
+        /* Glassmorphism Card Style */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center py-10 px-4">
+<body class="min-h-screen flex flex-col items-center py-10 px-4 text-white">
 
-    <h1 class="text-3xl font-bold text-gray-800 mb-2">🎡 วงล้อสุ่มรายชื่อ</h1>
-    <p class="text-gray-600 mb-8">ใส่ชื่อ แก้ไขรายการ แล้วกดหมุนเลย!</p>
+    <!-- เพิ่มพื้นหลังข้อความให้อ่านง่ายบนรูป -->
+    <h1 class="text-4xl font-bold text-white mb-2 drop-shadow-lg text-shadow">🎡 วงล้อสุ่มรายชื่อ</h1>
+    <p class="text-gray-200 mb-8 drop-shadow-md">ใส่ชื่อ แก้ไขรายการ แล้วกดหมุนเลย!</p>
 
     <div class="flex flex-col lg:flex-row gap-10 items-start w-full max-w-5xl justify-center">
         
@@ -55,14 +71,15 @@
                 <canvas id="wheelCanvas" width="800" height="800" class="w-full h-full rounded-full"></canvas>
             </div>
             
-            <div id="result" class="mt-6 text-2xl font-bold text-indigo-600 h-10 transition-all duration-300 transform text-center">
+            <!-- Result Box with better visibility -->
+            <div id="result" class="mt-8 text-3xl font-bold text-white h-12 transition-all duration-300 transform text-center drop-shadow-lg" style="text-shadow: 0 2px 4px rgba(0,0,0,0.5);">
                 รอการหมุน...
             </div>
 
             <!-- Action Buttons for Result -->
-            <div id="winnerActions" class="hidden mt-4 flex flex-wrap gap-3 justify-center w-full">
+            <div id="winnerActions" class="hidden mt-6 flex flex-wrap gap-3 justify-center w-full">
                 <!-- ปุ่มลบรายชื่อ -->
-                <button onclick="removeWinner()" class="bg-red-500 hover:bg-red-600 text-white py-3 px-6 rounded-full shadow-lg transition text-base flex items-center gap-2 transform active:scale-95">
+                <button onclick="removeWinner()" class="bg-red-500 hover:bg-red-600 text-white py-3 px-6 rounded-full shadow-lg transition text-base flex items-center gap-2 transform active:scale-95 border-2 border-white/20">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
@@ -70,7 +87,7 @@
                 </button>
                 
                 <!-- ปุ่มหมุนต่อ (ไม่ลบ) -->
-                <button onclick="spin()" class="bg-gray-600 hover:bg-gray-700 text-white py-3 px-6 rounded-full shadow-lg transition text-base flex items-center gap-2 transform active:scale-95">
+                <button onclick="spin()" class="bg-gray-700 hover:bg-gray-600 text-white py-3 px-6 rounded-full shadow-lg transition text-base flex items-center gap-2 transform active:scale-95 border-2 border-white/20">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
@@ -78,18 +95,18 @@
                 </button>
             </div>
 
-            <button onclick="spin()" id="spinBtn" class="mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-12 rounded-full shadow-lg transform transition active:scale-95 text-xl">
+            <button onclick="spin()" id="spinBtn" class="mt-8 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 px-16 rounded-full shadow-[0_0_20px_rgba(79,70,229,0.5)] transform transition active:scale-95 text-xl border-2 border-indigo-400/30 backdrop-blur-sm">
                 หมุนวงล้อ!
             </button>
         </div>
 
-        <!-- ส่วนใส่รายชื่อ -->
-        <div class="w-full lg:w-80 bg-white p-6 rounded-xl shadow-md order-1 lg:order-2 shrink-0">
-            <label class="block text-gray-700 text-sm font-bold mb-2" for="nameInput">
+        <!-- ส่วนใส่รายชื่อ (ปรับเป็น Glass Panel) -->
+        <div class="glass-panel w-full lg:w-80 p-6 rounded-xl shadow-xl order-1 lg:order-2 shrink-0">
+            <label class="block text-gray-800 text-sm font-bold mb-2" for="nameInput">
                 รายชื่อ (บรรทัดละ 1 ชื่อ)
             </label>
             <textarea id="nameInput" rows="10" 
-                class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md p-3 border"
+                class="shadow-inner focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md p-3 border bg-white/80 text-gray-900"
                 oninput="handleInput()">
 เจ
 บิว
@@ -100,14 +117,14 @@
 บี
 ซี
 </textarea>
-            <div class="mt-2 text-xs text-gray-500 text-right">
+            <div class="mt-2 text-xs text-gray-600 text-right font-semibold">
                 <span id="count">8</span> รายชื่อ
             </div>
             <div class="mt-4 flex gap-2">
-                 <button onclick="shuffleNames()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded text-sm transition">
+                 <button onclick="shuffleNames()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded text-sm transition font-medium">
                     สลับตำแหน่ง
                 </button>
-                <button onclick="clearNames()" class="flex-1 bg-red-100 hover:bg-red-200 text-red-800 py-2 px-4 rounded text-sm transition">
+                <button onclick="clearNames()" class="flex-1 bg-red-100 hover:bg-red-200 text-red-800 py-2 px-4 rounded text-sm transition font-medium">
                     ล้างทั้งหมด
                 </button>
             </div>
@@ -115,8 +132,8 @@
             <div class="mt-4 flex items-center justify-end">
                 <label class="inline-flex items-center cursor-pointer">
                     <input type="checkbox" id="soundToggle" class="sr-only peer" checked>
-                    <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                    <span class="ms-3 text-sm font-medium text-gray-700">เปิดเสียงเอฟเฟกต์</span>
+                    <div class="relative w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    <span class="ms-3 text-sm font-medium text-gray-800">เปิดเสียงเอฟเฟกต์</span>
                 </label>
             </div>
         </div>
@@ -197,9 +214,7 @@
             return list;
         }
 
-        // ฟังก์ชันใหม่แยกออกมาจัดการ UI เมื่อมีการแก้ไขข้อความ
         function handleInput() {
-            // เมื่อมีการพิมพ์ แก้ไข ให้รีเซ็ตสถานะผู้ชนะทิ้งไป
             resetGameUI(); 
             drawWheel();
         }
@@ -207,25 +222,23 @@
         function resetGameUI() {
             winnerActions.classList.add('hidden');
             resultDiv.innerText = "รอการหมุน...";
-            resultDiv.className = "mt-6 text-2xl font-bold text-indigo-600 h-10 transition-all duration-300 transform text-center";
-            // Show main spin button again if it was hidden (though we keep it visible usually)
+            // ปรับสีข้อความเป็นสีขาว
+            resultDiv.className = "mt-8 text-3xl font-bold text-white h-12 transition-all duration-300 transform text-center drop-shadow-lg";
             spinBtn.classList.remove('hidden'); 
         }
 
         function drawWheel() {
             names = getNames();
-            // REMOVED: The logic that automatically hid buttons based on isSpinning.
-            // Now drawWheel ONLY draws. UI state is managed by spin() and handleInput().
 
             if (names.length === 0) {
                 ctx.clearRect(0, 0, width, height);
                 ctx.beginPath();
                 ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-                ctx.fillStyle = '#f3f4f6';
+                ctx.fillStyle = 'rgba(255,255,255,0.9)'; // สีพื้นหลังวงล้อ
                 ctx.fill();
                 ctx.stroke();
                 
-                ctx.fillStyle = '#9ca3af';
+                ctx.fillStyle = '#666';
                 ctx.font = '40px Sarabun'; 
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
@@ -255,7 +268,7 @@
                 ctx.translate(centerX, centerY);
                 ctx.rotate(startAngle + sliceAngle / 2);
                 ctx.textAlign = "right";
-                ctx.fillStyle = "#ffffff"; // ปรับเป็นสีขาว
+                ctx.fillStyle = "#ffffff"; 
                 ctx.textBaseline = "middle";
                 
                 const arcLengthAtRim = (radius - 40) * sliceAngle;
@@ -275,7 +288,7 @@
                 }
                 
                 ctx.font = `bold ${fontSize}px Sarabun, sans-serif`;
-                ctx.shadowColor = "rgba(0,0,0,0.5)"; // เพิ่มความเข้มเงาเพื่อให้สีขาวอ่านง่ายขึ้น
+                ctx.shadowColor = "rgba(0,0,0,0.5)"; 
                 ctx.shadowBlur = 4;
                 ctx.fillText(name, radius - 40, 0); 
                 ctx.restore();
@@ -307,16 +320,13 @@
                 return;
             }
 
-            // Reset UI state specifically for a new spin
             resetGameUI();
             
-            // Hide main spin button temporarily while spinning to avoid double clicks
-            // (Optional, but looks cleaner)
             spinBtn.classList.add('hidden');
 
             isSpinning = true;
             resultDiv.innerText = "กำลังหมุน...";
-            resultDiv.className = "mt-6 text-2xl font-bold text-gray-500 text-center";
+            resultDiv.className = "mt-8 text-3xl font-bold text-yellow-300 h-12 text-center drop-shadow-lg animate-pulse";
 
             const spinAngle = (Math.random() * 5 + 5) * 2 * Math.PI; 
             const duration = 4000 + Math.random() * 2000; 
@@ -377,12 +387,10 @@
             const index = Math.floor(pointerValue / sliceAngle);
             currentWinner = names[index] || names[0];
 
-            resultDiv.innerText = "🎉 ผู้โชคดีคือ: " + currentWinner + " 🎉";
-            resultDiv.className = "mt-6 text-3xl font-bold text-pink-600 animate-bounce text-center";
+            resultDiv.innerHTML = "🎉 ผู้โชคดีคือ: <span class='text-yellow-300'>" + currentWinner + "</span> 🎉";
+            resultDiv.className = "mt-8 text-4xl font-bold text-white h-12 text-center drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] animate-bounce";
             
-            // Show Action Buttons
             winnerActions.classList.remove('hidden');
-            // Hide main spin button to force user to choose (Remove or Spin Again)
             spinBtn.classList.add('hidden');
             
             createConfetti();
@@ -396,11 +404,10 @@
             
             document.getElementById('nameInput').value = newNames.join('\n');
             
-            // Reset UI after removal
             resetGameUI();
             
             resultDiv.innerText = "ลบ " + currentWinner + " เรียบร้อย!";
-            resultDiv.className = "mt-6 text-xl text-gray-500 text-center";
+            resultDiv.className = "mt-8 text-2xl text-gray-300 text-center";
             
             drawWheel();
         }
@@ -412,7 +419,7 @@
                 [list[i], list[j]] = [list[j], list[i]];
             }
             document.getElementById('nameInput').value = list.join('\n');
-            resetGameUI(); // Reset if shuffled
+            resetGameUI(); 
             drawWheel();
         }
 
