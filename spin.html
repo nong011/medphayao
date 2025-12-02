@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wheel of Names by Friday</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #475569;
+            --accent: #f59e0b;
+            --bg: #f8fafc;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: #1e293b;
+            margin-bottom: 30px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .main-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 40px;
+            justify-content: center;
+            align-items: flex-start;
+            background: white;
+            padding: 40px;
+            border-radius: 24px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            max-width: 1000px;
+            width: 100%;
+        }
+
+        /* Input Section */
+        .input-section {
+            flex: 1;
+            min-width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        label {
+            font-weight: 600;
+            color: var(--secondary);
+        }
+
+        textarea {
+            width: 100%;
+            height: 300px;
+            padding: 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 16px;
+            resize: vertical;
+            transition: border-color 0.2s;
+            box-sizing: border-box;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        .btn-update {
+            background-color: #e2e8f0;
+            color: #475569;
+            flex: 1;
+        }
+
+        .btn-update:hover {
+            background-color: #cbd5e1;
+        }
+
+        .btn-spin {
+            background-color: var(--primary);
+            color: white;
+            flex: 2;
+            font-size: 18px;
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+        }
+
+        .btn-spin:hover {
+            background-color: #1d4ed8;
+            box-shadow: 0 6px 8px -1px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn-spin:disabled {
+            background-color: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        /* Wheel Section */
+        .wheel-wrapper {
+            position: relative;
+            padding: 10px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 0 0 10px #f1f5f9;
+        }
+
+        canvas {
+            border-radius: 50%;
+            transition: transform 5s cubic-bezier(0.15, 0, 0.15, 1); /* Custom easing for realistic spin */
+        }
+
+        .pointer {
+            position: absolute;
+            top: 50%;
+            right: -25px;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-top: 25px solid transparent;
+            border-bottom: 25px solid transparent;
+            border-right: 50px solid #ef4444;
+            filter: drop-shadow(-2px 2px 2px rgba(0,0,0,0.2));
+            z-index: 10;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 90%;
+            width: 400px;
+            transform: scale(0.9);
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .winner-display {
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin: 10px 0;
+            word-wrap: break-word;
+        }
+
+        .modal-btn-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .btn-close {
+            background-color: #64748b;
+            color: white;
+            flex: 1;
+        }
+
+        .btn-remove {
+            background-color: #ef4444;
+            color: white;
+            flex: 1;
+        }
+        
+        .btn-remove:hover {
+            background-color: #dc2626;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes popIn { to { transform: scale(1); } }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 20px;
+                flex-direction: column-reverse;
+                align-items: center;
+            }
+            
+            .input-section {
+                width: 100%;
+            }
+
+            .wheel-wrapper {
+                width: 300px; 
+                height: 300px;
+            }
+            canvas {
+                width: 100%;
+                height: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🎡 วงล้อสุ่มชื่อ (Friday Edition)</h1>
+
+    <div class="main-container">
+        <!-- Input Side -->
+        <div class="input-section">
+            <div>
+                <label for="names">รายชื่อผู้เข้าร่วม (บรรทัดละ 1 ชื่อ):</label>
+                <div style="font-size: 0.8em; color: #64748b; margin-top: 5px;">* บันทึกอัตโนมัติ | ใส่ได้อย่างน้อย 2 ชื่อ</div>
+            </div>
+            <!-- เพิ่ม event oninput เพื่อบันทึกทันที -->
+            <textarea id="names" placeholder="พิมพ์ชื่อที่นี่..." oninput="handleInput()"></textarea>
+            
+            <div class="controls">
+                <button class="btn-update" onclick="resetToDefault()">คืนค่าเริ่มต้น</button>
+                <button class="btn-spin" id="spinBtn" onclick="spin()">หมุนเลย!</button>
+            </div>
+        </div>
+
+        <!-- Wheel Side -->
+        <div class="wheel-wrapper">
+            <div class="pointer"></div>
+            <canvas id="wheel" width="500" height="500"></canvas>
+        </div>
+    </div>
+
+    <!-- Modal Result -->
+    <div id="modal" class="modal-overlay">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <h2 style="margin:0; color:#64748b;">🎉 ผู้โชคดีคือ 🎉</h2>
+            <div id="winner" class="winner-display">...</div>
+            
+            <div class="modal-btn-group">
+                <button class="btn-remove" onclick="removeWinner()">ลบชื่อนี้ออก</button>
+                <button class="btn-close" onclick="closeModal()">ปิดหน้าต่าง</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('wheel');
+        const ctx = canvas.getContext('2d');
+        const textArea = document.getElementById('names');
+        const spinBtn = document.getElementById('spinBtn');
+        const modal = document.getElementById('modal');
+        const winnerText = document.getElementById('winner');
+
+        // ค่าเริ่มต้น
+        const defaultNames = "Friday\nDoctor Nont\nAI Assistant\nNurse\nEngineer\nManager\nLucky Person";
+
+        // Palette สีสวยๆ
+        const colors = [
+            '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', 
+            '#FFEEAD', '#D4A5A5', '#9B59B6', '#3498DB',
+            '#E67E22', '#2ECC71', '#F1C40F', '#E74C3C'
+        ];
+
+        let names = [];
+        let currentRotation = 0;
+        let isSpinning = false;
+        let currentWinnerName = ""; // เก็บชื่อผู้ชนะล่าสุดไว้เพื่อลบ
+        let audioCtx = null;
+
+        // Init: โหลดข้อมูลจาก LocalStorage ก่อน
+        loadNames();
+        drawWheel();
+
+        // --- Save / Load Logic ---
+        
+        function loadNames() {
+            const saved = localStorage.getItem('friday_wheel_names');
+            if (saved) {
+                textArea.value = saved;
+            } else {
+                textArea.value = defaultNames;
+            }
+        }
+
+        function saveNames() {
+            localStorage.setItem('friday_wheel_names', textArea.value);
+        }
+
+        function handleInput() {
+            saveNames();
+            drawWheel();
+        }
+
+        function resetToDefault() {
+            if(confirm("ต้องการคืนค่ารายชื่อเริ่มต้นใช่ไหม? ข้อมูลปัจจุบันจะหายไป")) {
+                textArea.value = defaultNames;
+                saveNames();
+                drawWheel();
+            }
+        }
+
+        function removeWinner() {
+            if (!currentWinnerName) return;
+
+            // เอาชื่อผู้ชนะออกจากอาเรย์ names
+            // ใช้ filter เพื่อลบชื่อที่เหมือนกันออก (กรณีมีชื่อซ้ำอาจจะหายหมด ถ้าต้องการลบแค่ 1 อันต้องใช้ indexOf -> splice)
+            const index = names.indexOf(currentWinnerName);
+            if (index > -1) {
+                names.splice(index, 1);
+            }
+
+            // อัปเดตกลับไปที่ Textarea
+            textArea.value = names.join('\n');
+            
+            // บันทึกและวาดใหม่
+            saveNames();
+            drawWheel();
+            closeModal();
+        }
+
+        // --- Sound System ---
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playTone(freq, type, duration, startTime = 0) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.value = freq;
+            const time = startTime || audioCtx.currentTime;
+            gain.gain.setValueAtTime(0.15, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + duration - 0.05);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(time);
+            osc.stop(time + duration);
+        }
+
+        function playTickSound() {
+            playTone(800, 'triangle', 0.05);
+        }
+
+        function playWinSound() {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            playTone(523.25, 'sine', 0.6, now);     
+            playTone(659.25, 'sine', 0.6, now + 0.1); 
+            playTone(783.99, 'sine', 0.6, now + 0.2); 
+            playTone(1046.50, 'sine', 1.0, now + 0.3);
+        }
+
+        // --- Wheel Logic ---
+
+        function getNames() {
+            return textArea.value.split('\n').filter(n => n.trim() !== '');
+        }
+
+        function drawWheel() {
+            if (isSpinning) return;
+            
+            names = getNames();
+            const len = names.length;
+            const arc = (2 * Math.PI) / len;
+            const radius = canvas.width / 2;
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (len < 2) {
+                ctx.font = "24px sans-serif";
+                ctx.fillStyle = "#94a3b8";
+                ctx.textAlign = "center";
+                ctx.fillText("กรุณาใส่รายชื่ออย่างน้อย 2 ชื่อ", centerX, centerY);
+                return;
+            }
+
+            let fontSize = Math.floor(800 / len);
+            if (fontSize > 24) fontSize = 24;
+            if (fontSize < 10) fontSize = 10;
+
+            for (let i = 0; i < len; i++) {
+                const angle = i * arc;
+                
+                ctx.beginPath();
+                ctx.fillStyle = colors[i % colors.length];
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, angle, angle + arc);
+                ctx.lineTo(centerX, centerY);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(angle + arc / 2);
+                ctx.textAlign = "right";
+                
+                // สลับสีตัวอักษร ขาว-ดำ
+                if (i % 2 === 0) {
+                    ctx.fillStyle = "white";
+                    ctx.shadowColor = "rgba(0,0,0,0.5)"; // เงาดำสำหรับตัวหนังสือขาว
+                } else {
+                    ctx.fillStyle = "black";
+                    ctx.shadowColor = "rgba(255,255,255,0.5)"; // เงาขาวสำหรับตัวหนังสือดำ
+                }
+                
+                ctx.font = `bold ${fontSize}px Segoe UI`;
+                ctx.shadowBlur = 4;
+                ctx.fillText(names[i], radius - 30, fontSize / 3);
+                ctx.restore();
+            }
+        }
+
+        function spin() {
+            names = getNames();
+            if (names.length < 2) {
+                alert("กรุณาใส่รายชื่ออย่างน้อย 2 ชื่อครับ");
+                return;
+            }
+            if (isSpinning) return;
+
+            initAudio(); 
+            isSpinning = true;
+            spinBtn.disabled = true;
+            textArea.disabled = true;
+
+            const extraSpins = 5; 
+            const randomDegree = Math.floor(Math.random() * 360);
+            const totalDegrees = (extraSpins * 360) + randomDegree;
+            
+            currentRotation += totalDegrees;
+            canvas.style.transform = `rotate(-${currentRotation}deg)`;
+
+            let count = 0;
+            const maxTicks = 20; 
+            const tickInterval = setInterval(() => {
+                playTickSound();
+                count++;
+                if (count >= maxTicks) clearInterval(tickInterval);
+            }, 200); 
+
+            setTimeout(() => {
+                clearInterval(tickInterval); 
+                isSpinning = false;
+                spinBtn.disabled = false;
+                textArea.disabled = false;
+                
+                const actualRotation = currentRotation % 360;
+                const sliceAngle = 360 / names.length;
+                const winningIndex = Math.floor(actualRotation / sliceAngle);
+                
+                currentWinnerName = names[winningIndex]; // เก็บค่าผู้ชนะ
+                
+                playWinSound(); 
+                showModal(currentWinnerName);
+
+            }, 5000);
+        }
+
+        function showModal(name) {
+            winnerText.textContent = name;
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            modal.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
