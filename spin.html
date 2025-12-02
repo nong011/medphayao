@@ -3,503 +3,450 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wheel of Names by Friday</title>
+    <title>Wheel of Names</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root {
-            --primary: #2563eb;
-            --secondary: #475569;
-            --accent: #f59e0b;
-            --bg: #f8fafc;
-        }
-
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap');
+        
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
+            font-family: 'Sarabun', sans-serif;
+            background-color: #f3f4f6;
+            overflow-x: hidden;
         }
 
-        h1 {
-            color: #1e293b;
-            margin-bottom: 30px;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        .arrow-down {
+            width: 0; 
+            height: 0; 
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-top: 40px solid #1f2937;
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 20;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
         }
 
-        .main-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 40px;
-            justify-content: center;
-            align-items: flex-start;
-            background: white;
-            padding: 40px;
-            border-radius: 24px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            max-width: 1000px;
-            width: 100%;
-        }
-
-        /* Input Section */
-        .input-section {
-            flex: 1;
-            min-width: 300px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        label {
-            font-weight: 600;
-            color: var(--secondary);
-        }
-
-        textarea {
-            width: 100%;
-            height: 300px;
-            padding: 15px;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            font-size: 16px;
-            resize: vertical;
-            transition: border-color 0.2s;
-            box-sizing: border-box;
-        }
-
-        textarea:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
-
-        .controls {
-            display: flex;
-            gap: 10px;
-        }
-
-        button {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        button:active {
-            transform: translateY(1px);
-        }
-
-        .btn-update {
-            background-color: #e2e8f0;
-            color: #475569;
-            flex: 1;
-        }
-
-        .btn-update:hover {
-            background-color: #cbd5e1;
-        }
-
-        .btn-spin {
-            background-color: var(--primary);
-            color: white;
-            flex: 2;
-            font-size: 18px;
-            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
-        }
-
-        .btn-spin:hover {
-            background-color: #1d4ed8;
-            box-shadow: 0 6px 8px -1px rgba(37, 99, 235, 0.3);
-        }
-
-        .btn-spin:disabled {
-            background-color: #94a3b8;
-            cursor: not-allowed;
-        }
-
-        /* Wheel Section */
-        .wheel-wrapper {
+        .wheel-container {
             position: relative;
+            display: inline-block;
             padding: 10px;
             background: white;
             border-radius: 50%;
-            box-shadow: 0 0 0 10px #f1f5f9;
-        }
-
-        canvas {
-            border-radius: 50%;
-            transition: transform 5s cubic-bezier(0.15, 0, 0.15, 1); /* Custom easing for realistic spin */
-        }
-
-        .pointer {
-            position: absolute;
-            top: 50%;
-            right: -25px;
-            transform: translateY(-50%);
-            width: 0;
-            height: 0;
-            border-top: 25px solid transparent;
-            border-bottom: 25px solid transparent;
-            border-right: 50px solid #ef4444;
-            filter: drop-shadow(-2px 2px 2px rgba(0,0,0,0.2));
-            z-index: 10;
-        }
-
-        /* Modal */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(4px);
-            z-index: 100;
-            justify-content: center;
-            align-items: center;
-            animation: fadeIn 0.3s;
-        }
-
-        .modal-content {
-            background: white;
-            padding: 40px;
-            border-radius: 20px;
-            text-align: center;
-            max-width: 90%;
-            width: 400px;
-            transform: scale(0.9);
-            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .winner-display {
-            font-size: 3rem;
-            font-weight: 800;
-            color: var(--primary);
-            margin: 10px 0;
-            word-wrap: break-word;
-        }
-
-        .modal-btn-group {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin-top: 10px;
-        }
-
-        .btn-close {
-            background-color: #64748b;
-            color: white;
-            flex: 1;
-        }
-
-        .btn-remove {
-            background-color: #ef4444;
-            color: white;
-            flex: 1;
-        }
-        
-        .btn-remove:hover {
-            background-color: #dc2626;
-        }
-
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes popIn { to { transform: scale(1); } }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .main-container {
-                padding: 20px;
-                flex-direction: column-reverse;
-                align-items: center;
-            }
-            
-            .input-section {
-                width: 100%;
-            }
-
-            .wheel-wrapper {
-                width: 300px; 
-                height: 300px;
-            }
-            canvas {
-                width: 100%;
-                height: 100%;
-            }
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
     </style>
 </head>
-<body>
+<body class="min-h-screen flex flex-col items-center py-10 px-4">
 
-    <h1>🎡 วงล้อสุ่มชื่อ (Friday Edition)</h1>
+    <h1 class="text-3xl font-bold text-gray-800 mb-2">🎡 วงล้อสุ่มรายชื่อ</h1>
+    <p class="text-gray-600 mb-8">ใส่ชื่อ แก้ไขรายการ แล้วกดหมุนเลย!</p>
 
-    <div class="main-container">
-        <!-- Input Side -->
-        <div class="input-section">
-            <div>
-                <label for="names">รายชื่อผู้เข้าร่วม (บรรทัดละ 1 ชื่อ):</label>
-                <div style="font-size: 0.8em; color: #64748b; margin-top: 5px;">* บันทึกอัตโนมัติ | ใส่ได้อย่างน้อย 2 ชื่อ</div>
+    <div class="flex flex-col lg:flex-row gap-10 items-start w-full max-w-5xl justify-center">
+        
+        <!-- ส่วนวงล้อ -->
+        <div class="flex flex-col items-center order-2 lg:order-1 flex-1">
+            <div class="wheel-container relative">
+                <div class="arrow-down"></div>
+                <canvas id="wheelCanvas" width="400" height="400"></canvas>
             </div>
-            <!-- เพิ่ม event oninput เพื่อบันทึกทันที -->
-            <textarea id="names" placeholder="พิมพ์ชื่อที่นี่..." oninput="handleInput()"></textarea>
             
-            <div class="controls">
-                <button class="btn-update" onclick="resetToDefault()">คืนค่าเริ่มต้น</button>
-                <button class="btn-spin" id="spinBtn" onclick="spin()">หมุนเลย!</button>
+            <div id="result" class="mt-6 text-2xl font-bold text-indigo-600 h-10 transition-all duration-300 transform text-center">
+                รอการหมุน...
             </div>
+
+            <!-- Action Buttons for Result -->
+            <div id="winnerActions" class="hidden mt-2 flex gap-2">
+                <button onclick="removeWinner()" class="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-full shadow transition text-sm flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    ลบรายชื่อนี้ออก
+                </button>
+            </div>
+
+            <button onclick="spin()" id="spinBtn" class="mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-12 rounded-full shadow-lg transform transition active:scale-95 text-xl">
+                หมุนวงล้อ!
+            </button>
         </div>
 
-        <!-- Wheel Side -->
-        <div class="wheel-wrapper">
-            <div class="pointer"></div>
-            <canvas id="wheel" width="500" height="500"></canvas>
-        </div>
-    </div>
-
-    <!-- Modal Result -->
-    <div id="modal" class="modal-overlay">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <h2 style="margin:0; color:#64748b;">🎉 ผู้โชคดีคือ 🎉</h2>
-            <div id="winner" class="winner-display">...</div>
+        <!-- ส่วนใส่รายชื่อ -->
+        <div class="w-full lg:w-80 bg-white p-6 rounded-xl shadow-md order-1 lg:order-2">
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="nameInput">
+                รายชื่อ (บรรทัดละ 1 ชื่อ)
+            </label>
+            <textarea id="nameInput" rows="10" 
+                class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md p-3 border"
+                oninput="drawWheel()">
+เจ
+บิว
+แนน
+กอล์ฟ
+ส้ม
+เอ
+บี
+ซี
+</textarea>
+            <div class="mt-2 text-xs text-gray-500 text-right">
+                <span id="count">8</span> รายชื่อ
+            </div>
+            <div class="mt-4 flex gap-2">
+                 <button onclick="shuffleNames()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded text-sm transition">
+                    สลับตำแหน่ง
+                </button>
+                <button onclick="clearNames()" class="flex-1 bg-red-100 hover:bg-red-200 text-red-800 py-2 px-4 rounded text-sm transition">
+                    ล้างทั้งหมด
+                </button>
+            </div>
             
-            <div class="modal-btn-group">
-                <button class="btn-remove" onclick="removeWinner()">ลบชื่อนี้ออก</button>
-                <button class="btn-close" onclick="closeModal()">ปิดหน้าต่าง</button>
+            <!-- Sound Toggle -->
+            <div class="mt-4 flex items-center justify-end">
+                <label class="inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="soundToggle" class="sr-only peer" checked>
+                    <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    <span class="ms-3 text-sm font-medium text-gray-700">เปิดเสียงเอฟเฟกต์</span>
+                </label>
             </div>
         </div>
     </div>
 
     <script>
-        const canvas = document.getElementById('wheel');
+        const canvas = document.getElementById('wheelCanvas');
         const ctx = canvas.getContext('2d');
-        const textArea = document.getElementById('names');
         const spinBtn = document.getElementById('spinBtn');
-        const modal = document.getElementById('modal');
-        const winnerText = document.getElementById('winner');
-
-        // ค่าเริ่มต้น
-        const defaultNames = "Friday\nDoctor Nont\nAI Assistant\nNurse\nEngineer\nManager\nLucky Person";
-
-        // Palette สีสวยๆ
-        const colors = [
-            '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', 
-            '#FFEEAD', '#D4A5A5', '#9B59B6', '#3498DB',
-            '#E67E22', '#2ECC71', '#F1C40F', '#E74C3C'
-        ];
+        const resultDiv = document.getElementById('result');
+        const winnerActions = document.getElementById('winnerActions');
+        
+        let width = canvas.width;
+        let height = canvas.height;
+        let centerX = width / 2;
+        let centerY = height / 2;
+        let radius = width / 2 - 10; 
 
         let names = [];
-        let currentRotation = 0;
+        let currentAngle = 0;
         let isSpinning = false;
-        let currentWinnerName = ""; // เก็บชื่อผู้ชนะล่าสุดไว้เพื่อลบ
-        let audioCtx = null;
-
-        // Init: โหลดข้อมูลจาก LocalStorage ก่อน
-        loadNames();
-        drawWheel();
-
-        // --- Save / Load Logic ---
+        let animationId = null;
+        let currentWinner = ""; // เก็บชื่อผู้ชนะล่าสุด
         
-        function loadNames() {
-            const saved = localStorage.getItem('friday_wheel_names');
-            if (saved) {
-                textArea.value = saved;
-            } else {
-                textArea.value = defaultNames;
-            }
-        }
+        // Sound Context
+        let audioCtx = null;
+        let lastSliceIndex = -1;
 
-        function saveNames() {
-            localStorage.setItem('friday_wheel_names', textArea.value);
-        }
+        const colors = [
+            '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', 
+            '#FFEEAD', '#FFCC5C', '#FF9671', '#D4A5A5', 
+            '#9B59B6', '#3498DB', '#E67E22', '#2ECC71'
+        ];
 
-        function handleInput() {
-            saveNames();
-            drawWheel();
-        }
-
-        function resetToDefault() {
-            if(confirm("ต้องการคืนค่ารายชื่อเริ่มต้นใช่ไหม? ข้อมูลปัจจุบันจะหายไป")) {
-                textArea.value = defaultNames;
-                saveNames();
-                drawWheel();
-            }
-        }
-
-        function removeWinner() {
-            if (!currentWinnerName) return;
-
-            // เอาชื่อผู้ชนะออกจากอาเรย์ names
-            // ใช้ filter เพื่อลบชื่อที่เหมือนกันออก (กรณีมีชื่อซ้ำอาจจะหายหมด ถ้าต้องการลบแค่ 1 อันต้องใช้ indexOf -> splice)
-            const index = names.indexOf(currentWinnerName);
-            if (index > -1) {
-                names.splice(index, 1);
-            }
-
-            // อัปเดตกลับไปที่ Textarea
-            textArea.value = names.join('\n');
-            
-            // บันทึกและวาดใหม่
-            saveNames();
-            drawWheel();
-            closeModal();
-        }
-
-        // --- Sound System ---
         function initAudio() {
             if (!audioCtx) {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             }
         }
 
-        function playTone(freq, type, duration, startTime = 0) {
-            if (!audioCtx) return;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = type;
-            osc.frequency.value = freq;
-            const time = startTime || audioCtx.currentTime;
-            gain.gain.setValueAtTime(0.15, time);
-            gain.gain.exponentialRampToValueAtTime(0.01, time + duration - 0.05);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start(time);
-            osc.stop(time + duration);
-        }
-
         function playTickSound() {
-            playTone(800, 'triangle', 0.05);
+            if (!document.getElementById('soundToggle').checked || !audioCtx) return;
+            
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            oscillator.type = 'triangle';
+            oscillator.frequency.setValueAtTime(600, audioCtx.currentTime); 
+            oscillator.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.05);
+            
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.05);
         }
 
         function playWinSound() {
-            if (!audioCtx) return;
+            if (!document.getElementById('soundToggle').checked || !audioCtx) return;
+            
+            const notes = [523.25, 659.25, 783.99, 1046.50]; 
             const now = audioCtx.currentTime;
-            playTone(523.25, 'sine', 0.6, now);     
-            playTone(659.25, 'sine', 0.6, now + 0.1); 
-            playTone(783.99, 'sine', 0.6, now + 0.2); 
-            playTone(1046.50, 'sine', 1.0, now + 0.3);
+
+            notes.forEach((freq, i) => {
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                
+                oscillator.type = 'sine';
+                oscillator.frequency.value = freq;
+                
+                gainNode.gain.setValueAtTime(0, now + i * 0.1);
+                gainNode.gain.linearRampToValueAtTime(0.2, now + i * 0.1 + 0.05);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.5);
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                
+                oscillator.start(now + i * 0.1);
+                oscillator.stop(now + i * 0.1 + 0.6);
+            });
         }
 
-        // --- Wheel Logic ---
-
         function getNames() {
-            return textArea.value.split('\n').filter(n => n.trim() !== '');
+            const text = document.getElementById('nameInput').value;
+            const list = text.split('\n').filter(n => n.trim() !== '');
+            document.getElementById('count').innerText = list.length;
+            return list;
         }
 
         function drawWheel() {
-            if (isSpinning) return;
-            
             names = getNames();
-            const len = names.length;
-            const arc = (2 * Math.PI) / len;
-            const radius = canvas.width / 2;
-            const centerX = canvas.width / 2;
-            const centerY = canvas.height / 2;
+            // Reset winner actions when names change
+            if (!isSpinning) {
+                winnerActions.classList.add('hidden');
+                resultDiv.innerText = "รอการหมุน...";
+                resultDiv.className = "mt-6 text-2xl font-bold text-indigo-600 h-10 transition-all duration-300 transform text-center";
+            }
 
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            if (len < 2) {
-                ctx.font = "24px sans-serif";
-                ctx.fillStyle = "#94a3b8";
-                ctx.textAlign = "center";
-                ctx.fillText("กรุณาใส่รายชื่ออย่างน้อย 2 ชื่อ", centerX, centerY);
+            if (names.length === 0) {
+                ctx.clearRect(0, 0, width, height);
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                ctx.fillStyle = '#f3f4f6';
+                ctx.fill();
+                ctx.stroke();
+                
+                ctx.fillStyle = '#9ca3af';
+                ctx.font = '20px Sarabun';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('เพิ่มรายชื่อก่อนครับ', centerX, centerY);
                 return;
             }
 
-            let fontSize = Math.floor(800 / len);
-            if (fontSize > 24) fontSize = 24;
-            if (fontSize < 10) fontSize = 10;
+            const sliceAngle = (2 * Math.PI) / names.length;
 
-            for (let i = 0; i < len; i++) {
-                const angle = i * arc;
-                
+            ctx.clearRect(0, 0, width, height);
+
+            names.forEach((name, i) => {
+                const startAngle = i * sliceAngle + currentAngle;
+                const endAngle = (i + 1) * sliceAngle + currentAngle;
+
+                // Draw Slice
                 ctx.beginPath();
-                ctx.fillStyle = colors[i % colors.length];
                 ctx.moveTo(centerX, centerY);
-                ctx.arc(centerX, centerY, radius, angle, angle + arc);
-                ctx.lineTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+                ctx.fillStyle = colors[i % colors.length];
                 ctx.fill();
+                
+                ctx.lineWidth = 1; // ลดความหนาเส้นขอบเมื่อช่องเยอะ
+                ctx.strokeStyle = '#ffffff';
                 ctx.stroke();
 
+                // Draw Text
                 ctx.save();
                 ctx.translate(centerX, centerY);
-                ctx.rotate(angle + arc / 2);
+                ctx.rotate(startAngle + sliceAngle / 2);
                 ctx.textAlign = "right";
+                ctx.fillStyle = "#fff";
+                ctx.textBaseline = "middle"; // จัดกึ่งกลางแนวตั้ง เพื่อไม่ให้เบี้ยว
                 
-                // สลับสีตัวอักษร ขาว-ดำ
-                if (i % 2 === 0) {
-                    ctx.fillStyle = "white";
-                    ctx.shadowColor = "rgba(0,0,0,0.5)"; // เงาดำสำหรับตัวหนังสือขาว
-                } else {
-                    ctx.fillStyle = "black";
-                    ctx.shadowColor = "rgba(255,255,255,0.5)"; // เงาขาวสำหรับตัวหนังสือดำ
+                // --- Smart Font Sizing Logic (V2) ---
+                
+                // 1. คำนวณความกว้างของช่องที่ขอบวงกลม (Arc Length)
+                // สูตร: ความยาวส่วนโค้ง = รัศมี * มุม (radians)
+                // เราใช้รัศมีตรงจุดที่เริ่มเขียนข้อความ (radius - 20)
+                const arcLengthAtRim = (radius - 20) * sliceAngle;
+                
+                // 2. กำหนดขนาดฟอนต์ให้เล็กกว่าช่องนิดหน่อย (เช่น 70%)
+                let fontSize = arcLengthAtRim * 0.75;
+
+                // 3. กำหนดเพดานขั้นต่ำและขั้นสูง
+                if (fontSize > 28) fontSize = 28; // ไม่ใหญ่เกินไป
+                if (fontSize < 10) fontSize = 10; // ไม่เล็กจนอ่านไม่ออก (ถ้าช่องเยอะมากจริงๆ มันจะซ้อนกันบ้างแต่น้อยที่สุด)
+
+                ctx.font = `bold ${fontSize}px Sarabun, sans-serif`;
+                
+                // 4. ตรวจสอบความยาวชื่อ (ไม่ให้ยาวทะลุวงล้อ)
+                const maxTextWidth = radius - 50; // พื้นที่เขียนข้อความ
+                let textWidth = ctx.measureText(name).width;
+                
+                // ถ้าชื่อยาวเกินพื้นที่ ให้ลดขนาดฟอนต์ลงอีกเฉพาะชื่อนั้น
+                if (textWidth > maxTextWidth) {
+                    let lengthBasedSize = fontSize * (maxTextWidth / textWidth);
+                    // ใช้ค่าที่น้อยกว่า ระหว่างค่าที่คำนวณจากความกว้างช่อง กับ ความยาวชื่อ
+                    if (lengthBasedSize < fontSize) fontSize = lengthBasedSize;
                 }
                 
-                ctx.font = `bold ${fontSize}px Segoe UI`;
+                // Set font again with final size
+                ctx.font = `bold ${fontSize}px Sarabun, sans-serif`;
+                
+                ctx.shadowColor = "rgba(0,0,0,0.3)";
                 ctx.shadowBlur = 4;
-                ctx.fillText(names[i], radius - 30, fontSize / 3);
+                
+                ctx.fillText(name, radius - 20, 0); // y=0 เพราะใช้ textBaseline=middle
                 ctx.restore();
-            }
+            });
+
+            // Hub
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 30, 0, 2 * Math.PI);
+            ctx.fillStyle = 'white';
+            ctx.fill();
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = '#e5e7eb';
+            ctx.stroke();
+            
+            ctx.font = "20px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillStyle = "#F59E0B";
+            ctx.shadowColor = "transparent";
+            ctx.fillText("★", centerX, centerY + 2);
         }
 
         function spin() {
+            initAudio();
+            if (isSpinning) return;
+            
             names = getNames();
-            if (names.length < 2) {
-                alert("กรุณาใส่รายชื่ออย่างน้อย 2 ชื่อครับ");
+            if (names.length === 0) {
+                alert("กรุณาใส่รายชื่ออย่างน้อย 1 ชื่อครับ");
                 return;
             }
-            if (isSpinning) return;
 
-            initAudio(); 
+            // Hide old remove button when starting new spin
+            winnerActions.classList.add('hidden');
+            
             isSpinning = true;
             spinBtn.disabled = true;
-            textArea.disabled = true;
+            spinBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            resultDiv.innerText = "กำลังหมุน...";
+            resultDiv.className = "mt-6 text-2xl font-bold text-gray-500 text-center";
 
-            const extraSpins = 5; 
-            const randomDegree = Math.floor(Math.random() * 360);
-            const totalDegrees = (extraSpins * 360) + randomDegree;
+            const spinAngle = (Math.random() * 5 + 5) * 2 * Math.PI; 
+            const duration = 4000 + Math.random() * 2000; 
             
-            currentRotation += totalDegrees;
-            canvas.style.transform = `rotate(-${currentRotation}deg)`;
+            const startAngle = currentAngle;
+            let startTime = null;
+            lastSliceIndex = -1; 
 
-            let count = 0;
-            const maxTicks = 20; 
-            const tickInterval = setInterval(() => {
-                playTickSound();
-                count++;
-                if (count >= maxTicks) clearInterval(tickInterval);
-            }, 200); 
+            function animate(currentTime) {
+                if (!startTime) startTime = currentTime;
+                const elapsed = currentTime - startTime;
+                
+                if (elapsed < duration) {
+                    const t = elapsed / duration;
+                    const easeOut = 1 - Math.pow(1 - t, 3);
+                    
+                    currentAngle = startAngle + (spinAngle * easeOut);
+                    
+                    const normalizedAngle = currentAngle % (2 * Math.PI);
+                    const sliceAngle = (2 * Math.PI) / names.length;
+                    
+                    const angleAtPointer = (3 * Math.PI / 2 - normalizedAngle + 2 * Math.PI) % (2 * Math.PI);
+                    const currentSliceIndex = Math.floor(angleAtPointer / sliceAngle);
 
-            setTimeout(() => {
-                clearInterval(tickInterval); 
-                isSpinning = false;
-                spinBtn.disabled = false;
-                textArea.disabled = false;
-                
-                const actualRotation = currentRotation % 360;
-                const sliceAngle = 360 / names.length;
-                const winningIndex = Math.floor(actualRotation / sliceAngle);
-                
-                currentWinnerName = names[winningIndex]; // เก็บค่าผู้ชนะ
-                
-                playWinSound(); 
-                showModal(currentWinnerName);
+                    if (lastSliceIndex !== -1 && currentSliceIndex !== lastSliceIndex) {
+                        playTickSound();
+                    }
+                    lastSliceIndex = currentSliceIndex;
 
-            }, 5000);
+                    currentAngle = currentAngle % (2 * Math.PI); 
+                    
+                    drawWheel();
+                    animationId = requestAnimationFrame(animate);
+                } else {
+                    isSpinning = false;
+                    spinBtn.disabled = false;
+                    spinBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    
+                    currentAngle = startAngle + spinAngle;
+                    currentAngle = currentAngle % (2 * Math.PI);
+                    drawWheel();
+                    
+                    calculateWinner();
+                    playWinSound(); 
+                }
+            }
+
+            animationId = requestAnimationFrame(animate);
         }
 
-        function showModal(name) {
-            winnerText.textContent = name;
-            modal.style.display = 'flex';
+        function calculateWinner() {
+            const sliceAngle = (2 * Math.PI) / names.length;
+            let normalizedAngle = currentAngle % (2 * Math.PI);
+            if (normalizedAngle < 0) normalizedAngle += 2 * Math.PI;
+
+            let pointerValue = (3 * Math.PI / 2) - normalizedAngle;
+            if (pointerValue < 0) pointerValue += 2 * Math.PI;
+            pointerValue = pointerValue % (2 * Math.PI);
+
+            const index = Math.floor(pointerValue / sliceAngle);
+            currentWinner = names[index] || names[0];
+
+            resultDiv.innerText = "🎉 ผู้โชคดีคือ: " + currentWinner + " 🎉";
+            resultDiv.className = "mt-6 text-3xl font-bold text-pink-600 animate-bounce text-center";
+            
+            // Show Remove Button
+            winnerActions.classList.remove('hidden');
+            
+            createConfetti();
         }
 
-        function closeModal() {
-            modal.style.display = 'none';
+        function removeWinner() {
+            if (!currentWinner) return;
+            
+            let currentNames = getNames();
+            // Remove ONLY the first instance of this winner (in case of duplicates)
+            // or filter ALL instances? Usually removing one is safer for simple lists.
+            // Let's filter all instances to be sure they are gone.
+            const newNames = currentNames.filter(name => name !== currentWinner);
+            
+            document.getElementById('nameInput').value = newNames.join('\n');
+            
+            // Hide button after clicking
+            winnerActions.classList.add('hidden');
+            resultDiv.innerText = "ลบ " + currentWinner + " เรียบร้อย!";
+            resultDiv.className = "mt-6 text-xl text-gray-500 text-center";
+            
+            drawWheel();
         }
+
+        function shuffleNames() {
+            let list = getNames();
+            for (let i = list.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [list[i], list[j]] = [list[j], list[i]];
+            }
+            document.getElementById('nameInput').value = list.join('\n');
+            drawWheel();
+        }
+
+        function clearNames() {
+            if(confirm('ล้างรายชื่อทั้งหมดไหม?')) {
+                document.getElementById('nameInput').value = '';
+                winnerActions.classList.add('hidden');
+                drawWheel();
+            }
+        }
+        
+        function createConfetti() {
+            const colors = ['#f00', '#0f0', '#00f', '#ff0', '#0ff'];
+            for(let i=0; i<50; i++) {
+                setTimeout(() => {
+                    const x = Math.random() * width;
+                    const y = Math.random() * height;
+                    ctx.fillStyle = colors[Math.floor(Math.random()*colors.length)];
+                    ctx.beginPath();
+                    ctx.arc(x, y, Math.random()*5, 0, Math.PI*2);
+                    ctx.fill();
+                }, i * 20);
+            }
+            setTimeout(drawWheel, 1500);
+        }
+
+        window.onload = drawWheel;
+
     </script>
 </body>
 </html>
